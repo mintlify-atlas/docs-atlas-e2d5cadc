@@ -1,0 +1,163 @@
+---
+title: Profile Management
+description: View and manage your LarpLand user profile
+---
+
+Access and manage your account information, track your activity, and navigate to your orders and events from the Profile tab.
+
+## Accessing Your Profile
+
+Tap the **Profile** icon in the bottom navigation bar to view your profile screen.
+
+## Profile Header
+
+Your profile displays at the top of the screen with:
+
+- **Avatar circle**: Shows the first letter of your name in a colored circle
+- **Display name**: Your full name
+- **Email address**: Your account email
+
+## Editing Your Profile
+
+Update your name and email address directly from the profile screen.
+
+<Steps>
+  <Step title="Tap Edit Profile">
+    Press the **Editar perfil** button below your profile header
+  </Step>
+  <Step title="Update your information">
+    A dialog appears with fields for:
+    - **Name**: Your display name (required)
+    - **Email**: Your email address (must be valid format)
+  </Step>
+  <Step title="Save changes">
+    Tap **Guardar** to update your profile
+  </Step>
+</Steps>
+
+### Email Changes
+
+When you change your email address:
+
+- The update is saved to both Firestore and Firebase Authentication
+- You may need to verify your new email address through Firebase
+- Your email verification status will update to "Pendiente" until verified
+
+<Note>
+Email validation checks for basic format (@, .) but doesn't send verification emails automatically.
+</Note>
+
+## Account Information
+
+The **Cuenta** section displays your account details:
+
+- **Correo** (Email): Your current email address
+- **Verificacion** (Verification): Shows "Verificado" or "Pendiente" based on Firebase email verification status
+- **Rol** (Role): Displays "Administrador" if you have admin privileges (rol=1)
+
+## Activity Stats
+
+The **Actividad** section shows your engagement metrics:
+
+- **Eventos inscritos**: Number of events you're currently registered for
+- **Pedidos realizados**: Total number of orders you've placed
+
+For admin users, additional technical details appear:
+
+- **ID de usuario**: Your numeric user ID in Firestore
+- **Firebase UID**: Your Firebase authentication unique identifier
+
+## Quick Actions
+
+Two prominent buttons provide fast access to key features:
+
+### Ver mis eventos inscritos
+
+Opens the [Registered Events](/user-guide/events#viewing-your-registered-events) screen showing:
+
+- **Proximos**: Upcoming events you can attend or cancel
+- **Pasados**: Past events you've attended
+
+### Ver mis pedidos
+
+Opens the [Order History](/user-guide/shopping#viewing-order-history) screen displaying:
+
+- All your past orders with order numbers, dates, and totals
+- Expandable order details showing items, quantities, and prices
+- Order status badges (Pendiente, Completado)
+
+## Recent Orders
+
+The **Pedidos recientes** section shows your last 5 orders directly on the profile screen:
+
+Each order row displays:
+
+- Order number (e.g., "Pedido #123")
+- Order date and time
+- Total items count
+- Grand total in euros
+- Status badge
+
+If you haven't placed any orders, you'll see: "Todavia no has realizado pedidos."
+
+## Refreshing Profile Data
+
+Pull down on the profile screen to refresh all data:
+
+- User profile information
+- Event registration count
+- Order list
+- Email verification status
+
+This fetches the latest information from Firebase.
+
+## Empty States
+
+**No registered events**: Your event count shows "0"
+
+**No orders**: The recent orders section displays "Todavia no has realizado pedidos."
+
+## Admin-Only Features
+
+If your account has admin privileges (rol=1):
+
+### Additional Info
+
+- **Rol badge**: "Administrador" appears in the Account section
+- **Technical IDs**: User ID and Firebase UID are visible in Activity section
+
+### Admin Navigation
+
+Admin users see the admin dashboard instead of the standard home screen after login, but can still access the profile through navigation.
+
+## Profile Data Sources
+
+Profile information is loaded from multiple sources:
+
+- **User details**: Fetched from Firestore `users` collection
+- **Event count**: Loaded from `event_registrations` collection filtered by user ID
+- **Orders**: Fetched from `orders` collection filtered by user ID
+- **Verification status**: Retrieved from Firebase Authentication current user
+
+## Error Handling
+
+If profile data fails to load:
+
+- An error icon and message appear
+- Error details are displayed
+- A **Reintentar** (Retry) button allows you to reload the data
+- Check your internet connection and Firebase configuration
+
+## Profile Updates
+
+When you save profile changes:
+
+- A "Guardando..." (Saving...) status appears on the save button
+- The dialog cannot be dismissed while saving
+- On success, a "Perfil actualizado" confirmation appears
+- The profile screen automatically refreshes to show updated data
+- If an error occurs, an error message is displayed without closing the dialog
+
+<Tip>
+Profile edits update both Firestore (user document) and Firebase Authentication (email) simultaneously to keep data in sync.
+</Tip>

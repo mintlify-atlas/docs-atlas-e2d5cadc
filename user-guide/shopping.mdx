@@ -175,6 +175,66 @@ While your order is being processed:
 
 This typically takes just a few seconds.
 
+## Viewing Order History
+
+Access your past orders to track purchases and review order details.
+
+### Accessing Order History
+
+From the **Profile** tab:
+
+<Steps>
+  <Step title="Navigate to Profile">
+    Tap the **Profile** icon in the bottom navigation bar
+  </Step>
+  <Step title="Open Order History">
+    Tap the **Ver mis pedidos** button
+  </Step>
+</Steps>
+
+### Order List View
+
+Your orders are displayed in a scrollable list, showing:
+
+- **Order number**: Unique ID for each order (e.g., "Pedido #123")
+- **Order date**: Date and time in DD/MM/YYYY HH:MM format
+- **Item count**: Total number of items in the order
+- **Total amount**: Final price in euros
+- **Order status**: Visual badge showing current status
+
+### Order Status Badges
+
+Orders display color-coded status indicators:
+
+- **Pendiente** (Pending): Yellow badge - Order awaiting processing or payment
+- **Completado** (Completed): Green badge - Order successfully fulfilled
+- Other statuses display with a neutral badge
+
+### Viewing Order Details
+
+Tap any order card to expand and view:
+
+- **Product thumbnails**: 52x52px images of each item
+- **Product names**: Full item descriptions
+- **Quantities**: Number of each item ordered
+- **Unit prices**: Price per item
+- **Line totals**: Quantity × unit price for each item
+
+### Empty State
+
+If you haven't placed any orders yet, you'll see:
+
+- An icon: receipt_long_outlined
+- Message: "Todavia no tienes pedidos"
+
+### Refreshing Orders
+
+Pull down on the order history screen to refresh and load the latest order data from Firebase.
+
+<Note>
+Order history is fetched from Firestore in real-time, so you'll always see the most current order status.
+</Note>
+
 ## Cart Persistence
 
 Your cart is maintained in memory using a state provider:
