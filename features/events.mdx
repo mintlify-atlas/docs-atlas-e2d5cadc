@@ -1,0 +1,406 @@
+---
+title: LARP Events
+description: Event management system for discovering and registering for roleplay events
+---
+
+The LARP events system allows users to discover upcoming roleplay events, register for participation, and receive notifications. Admins can create, update, and manage events.
+
+## Overview
+
+The events system provides:
+
+- **Event listing** with all upcoming LARP events
+- **Event registration** for users to sign up
+- **Registration tracking** to show which events users are attending
+- **Event notifications** for registered users
+- **Admin management** for creating, updating, and deleting events
+- **Date-based sorting** for chronological event display
+
+## Event Model
+
+Events are represented by the `RoleplayEvent` class:
+
+```dart lib/model/roleplay_event.dart
+class RoleplayEvent {
+  final int id;
+  final String name;
+  final String description;
+  final String fechaInicio;
+  final String fechaFin;
+  bool isRegistered;
+
+  RoleplayEvent({
+    required this.id,
+    required this.name,
+    required this.description,
+    required this.fechaInicio,
+    required this.fechaFin,
+    this.isRegistered = false,
+  });
+
+  factory RoleplayEvent.fromJson(Map<String, dynamic> json) {
+    final id = _asInt(json['id']);
+    final name = _asString(json['nombre'] ?? json['name']);
+    final description = _asString(json['descripcion'] ?? json['description']);
+    final fechaInicio = _asString(json['fecha_inicio'] ?? json['fechaInicio']);
+    final fechaFin = _asString(json['fecha_fin'] ?? json['fechaFin']);
+
+    if (id == null ||
+        name == null ||
+        description == null ||
+        fechaInicio == null ||
+        fechaFin == null) {
+      throw const FormatException('Fallo al cargar evento');
+    }
+
+    return RoleplayEvent(
+      id: id,
+      name: name,
+      description: description,
+      fechaInicio: fechaInicio,
+      fechaFin: fechaFin,
+    );
+  }
+}
+```
+
+### Event Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `int` | Unique numeric event ID |
+| `name` | `String` | Event name/title |
+| `description` | `String` | Event description and details |
+| `fechaInicio` | `String` | Start date (ISO 8601 format) |
+| `fechaFin` | `String` | End date (ISO 8601 format) |
+| `isRegistered` | `bool` | Whether current user is registered (mutable) |
+
+## Fetching Events
+
+Retrieve all events with optional registration status:
+
+```dart lib/service/roleplay_event.dart
+Future<List<RoleplayEvent>> fetchEventList({int? userId}) async {
+  FirebaseBackend.ensureInitialized();
+  final registeredEventIds = userId == null
+      ? const <int>{}
+      : await fetchRegisteredEventIds(userId);
+
+  final events = (await FirebaseBackend.events.orderBy('id').get()).docs
+      .map(FirebaseBackend.normalizeSnapshotData)
+      .map(RoleplayEvent.fromJson)
+      .toList(growable: false);
+
+  if (registeredEventIds.isEmpty) {
+    return events;
+  }
+
+  for (final event in events) {
+    event.isRegistered = registeredEventIds.contains(event.id);
+  }
+  return events;
+}
+```
+
+### Fetch Process
+
+1. **Load user registrations** if userId provided
+2. **Fetch all events** from `events` collection
+3. **Order by ID** for consistent ordering
+4. **Parse to RoleplayEvent models**
+5. **Mark registration status** for each event
+
+<Info>
+The `isRegistered` flag is set based on the user's registration data, allowing the UI to show registration state.
+</Info>
+
+## Event Registration
+
+Users can register for events:
+
+```dart lib/service/roleplay_event.dart
+Future<void> registerUserInEvent({
+  required int userId,
+  required int eventId,
+}) async {
+  FirebaseBackend.ensureInitialized();
+  final docId = '${userId}_$eventId';
+  await _eventRegistrations.doc(docId).set(<String, dynamic>{
+    'id': docId,
+    'user_id': userId,
+    'event_id': eventId,
+    'created_at': FieldValue.serverTimestamp(),
+    'updated_at': FieldValue.serverTimestamp(),
+  }, SetOptions(merge: true));
+}
+```
+
+### Registration Process
+
+1. **Create composite document ID** `{userId}_{eventId}`
+2. **Store registration** in `event_registrations` collection
+3. **Add timestamps** for tracking
+
+### Registration Schema
+
+```json
+{
+  "id": "456_123",
+  "user_id": 456,
+  "event_id": 123,
+  "created_at": "2024-01-20T10:30:00Z",
+  "updated_at": "2024-01-20T10:30:00Z"
+}
+```
+
+## Canceling Registration
+
+Users can cancel their event registration:
+
+```dart lib/service/roleplay_event.dart
+Future<void> cancelUserEventRegistration({
+  required int userId,
+  required int eventId,
+}) async {
+  FirebaseBackend.ensureInitialized();
+  final docId = '${userId}_$eventId';
+  final ref = _eventRegistrations.doc(docId);
+  final snapshot = await ref.get();
+  if (!snapshot.exists) {
+    return;
+  }
+  await ref.delete();
+}
+```
+
+<Note>
+Canceling registration is a soft delete - it simply removes the registration document. The event itself remains unchanged.
+</Note>
+
+## Fetching User's Registered Events
+
+Get all events a user is registered for:
+
+```dart lib/service/roleplay_event.dart
+Future<List<RoleplayEvent>> fetchRegisteredEventsForUser(int userId) async {
+  final events = await fetchEventList(userId: userId);
+  final registered = events.where((event) => event.isRegistered).toList();
+  registered.sort((a, b) {
+    final aDate = DateTime.tryParse(a.fechaInicio);
+    final bDate = DateTime.tryParse(b.fechaInicio);
+    if (aDate == null && bDate == null) return 0;
+    if (aDate == null) return 1;
+    if (bDate == null) return -1;
+    return aDate.compareTo(bDate);
+  });
+  return registered;
+}
+```
+
+### Sorting Logic
+
+- Events sorted by start date (earliest first)
+- Invalid dates sorted to the end
+- Useful for displaying "My Events" in chronological order
+
+## Admin Event Management
+
+### Creating Events
+
+```dart lib/service/roleplay_event.dart
+Future<RoleplayEvent> addEvent(
+  String name,
+  String description,
+  String fechaInicio,
+  String fechaFin,
+) async {
+  FirebaseBackend.ensureInitialized();
+  final id = await FirebaseBackend.nextNumericId('events');
+  final data = <String, dynamic>{
+    'id': id,
+    'nombre': name,
+    'descripcion': description,
+    'fecha_inicio': fechaInicio,
+    'fecha_fin': fechaFin,
+    'created_at': DateTime.now().toUtc().toIso8601String(),
+    'updated_at': DateTime.now().toUtc().toIso8601String(),
+  };
+  await FirebaseBackend.events.add(data);
+  return RoleplayEvent.fromJson(data);
+}
+```
+
+#### Event Creation Steps
+
+1. **Generate numeric ID** using atomic counter
+2. **Create event document** in `events` collection
+3. **Add timestamps** for tracking
+4. **Return RoleplayEvent** for immediate display
+
+### Updating Events
+
+```dart lib/service/roleplay_event.dart
+Future<void> updateEvent(
+  int id, {
+  required String name,
+  required String description,
+  required String fechaInicio,
+  required String fechaFin,
+}) async {
+  FirebaseBackend.ensureInitialized();
+  final ref = await FirebaseBackend.findRefByNumericId(FirebaseBackend.events, id);
+  await ref.set(<String, dynamic>{
+    'nombre': name,
+    'descripcion': description,
+    'fecha_inicio': fechaInicio,
+    'fecha_fin': fechaFin,
+    'updated_at': DateTime.now().toUtc().toIso8601String(),
+  }, SetOptions(merge: true));
+}
+```
+
+<Info>
+Updating an event does not affect existing registrations. Users remain registered even if event details change.
+</Info>
+
+### Deleting Events
+
+```dart lib/service/roleplay_event.dart
+Future<void> deleteEvent(int id) async {
+  FirebaseBackend.ensureInitialized();
+  final ref = await FirebaseBackend.findRefByNumericId(FirebaseBackend.events, id);
+  await ref.delete();
+
+  final registrations = await _eventRegistrations
+      .where('event_id', isEqualTo: id)
+      .get();
+  for (final doc in registrations.docs) {
+    await doc.reference.delete();
+  }
+}
+```
+
+#### Deletion Process
+
+1. **Delete event document** from `events` collection
+2. **Find all registrations** for this event
+3. **Delete all registrations** to maintain data consistency
+
+<Warning>
+Deleting an event removes all user registrations for that event. This action cannot be undone.
+</Warning>
+
+## Registration Tracking
+
+Fetch event IDs a user is registered for:
+
+```dart lib/service/roleplay_event.dart
+Future<Set<int>> fetchRegisteredEventIds(int userId) async {
+  FirebaseBackend.ensureInitialized();
+  final snapshot =
+      await _eventRegistrations.where('user_id', isEqualTo: userId).get();
+  return snapshot.docs
+      .map((doc) => doc.data()['event_id'])
+      .map(_asInt)
+      .whereType<int>()
+      .toSet();
+}
+```
+
+Returns a `Set<int>` of event IDs for efficient lookup when displaying event lists.
+
+## Firestore Collections
+
+### Events Collection
+
+```json
+{
+  "id": 1,
+  "nombre": "Medieval Quest Weekend",
+  "descripcion": "A three-day medieval fantasy LARP event featuring battles, quests, and intrigue.",
+  "fecha_inicio": "2024-03-15T10:00:00Z",
+  "fecha_fin": "2024-03-17T18:00:00Z",
+  "created_at": "2024-01-10T09:00:00Z",
+  "updated_at": "2024-01-15T14:30:00Z"
+}
+```
+
+### Event Registrations Collection
+
+```json
+{
+  "id": "456_1",
+  "user_id": 456,
+  "event_id": 1,
+  "created_at": "2024-02-01T12:00:00Z",
+  "updated_at": "2024-02-01T12:00:00Z"
+}
+```
+
+## UI Integration
+
+### Event Display
+
+Events are displayed using the `EventCard` component which shows:
+
+- Event name and description
+- Start and end dates
+- Registration status (registered/not registered)
+- Registration/cancel buttons
+
+### Registration Button Logic
+
+```dart
+if (event.isRegistered) {
+  ElevatedButton(
+    onPressed: () async {
+      await cancelUserEventRegistration(
+        userId: currentUserId,
+        eventId: event.id,
+      );
+      setState(() => event.isRegistered = false);
+    },
+    child: Text('Cancel Registration'),
+  );
+} else {
+  ElevatedButton(
+    onPressed: () async {
+      await registerUserInEvent(
+        userId: currentUserId,
+        eventId: event.id,
+      );
+      setState(() => event.isRegistered = true);
+    },
+    child: Text('Register'),
+  );
+}
+```
+
+## Event Notifications
+
+The system supports event notifications for registered users. Notifications can be triggered:
+
+- When a user registers for an event
+- Before an event starts (reminder notifications)
+- When event details are updated
+- When an event is cancelled
+
+<Info>
+Notification implementation details depend on your Firebase Cloud Messaging (FCM) setup.
+</Info>
+
+## Related Resources
+
+<CardGroup cols={2}>
+  <Card title="User Roles" icon="users" href="/features/user-roles">
+    Admin event management capabilities
+  </Card>
+  
+  <Card title="Firebase Backend" icon="database" href="/api/firebase-backend">
+    Event storage in Firestore
+  </Card>
+  
+  <Card title="Authentication" icon="lock" href="/features/authentication">
+    User session for registration tracking
+  </Card>
+</CardGroup>

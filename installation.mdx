@@ -1,0 +1,355 @@
+---
+title: 'Installation'
+description: 'Install Flutter SDK and set up the LarpLand project on your machine'
+---
+
+## Prerequisites
+
+Before you begin, ensure you have the following installed on your system:
+
+<CardGroup cols={2}>
+  <Card title="Flutter SDK" icon="mobile">
+    Version 3.3.0 or higher
+  </Card>
+  <Card title="Dart SDK" icon="code">
+    Comes bundled with Flutter
+  </Card>
+  <Card title="Git" icon="git-alt">
+    For cloning the repository
+  </Card>
+  <Card title="Code Editor" icon="laptop-code">
+    VS Code or Android Studio recommended
+  </Card>
+</CardGroup>
+
+### Install Flutter SDK
+
+If you haven't installed Flutter yet, follow the official installation guide for your platform:
+
+- **macOS**: [flutter.dev/docs/get-started/install/macos](https://flutter.dev/docs/get-started/install/macos)
+- **Windows**: [flutter.dev/docs/get-started/install/windows](https://flutter.dev/docs/get-started/install/windows)
+- **Linux**: [flutter.dev/docs/get-started/install/linux](https://flutter.dev/docs/get-started/install/linux)
+
+Verify your Flutter installation:
+
+```bash
+flutter doctor
+```
+
+This command checks your environment and displays a report of the status of your Flutter installation.
+
+---
+
+## Clone the Repository
+
+Clone the LarpLand repository to your local machine:
+
+```bash
+git clone <repository-url>
+cd larpland
+```
+
+<Note>
+  The project uses the **firebase branch** for the backend. Make sure you're on the correct branch after cloning.
+</Note>
+
+---
+
+## Install Dependencies
+
+Install all required Flutter packages defined in `pubspec.yaml`:
+
+```bash
+flutter pub get
+```
+
+### Key Dependencies
+
+The project includes the following major dependencies:
+
+<CodeGroup>
+```yaml pubspec.yaml
+name: larpland
+description: "A new Flutter project."
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # Firebase
+  firebase_core: ^4.4.0
+  firebase_auth: ^6.1.4
+  cloud_firestore: ^6.1.2
+  firebase_storage: ^13.0.6
+  
+  # HTTP & Networking
+  http: ^1.2.1
+  dio: ^5.4.3+1
+  
+  # State Management
+  provider: ^6.1.2
+  
+  # UI Components
+  cupertino_icons: ^1.0.6
+  flutter_signin_button: ^2.0.0
+  
+  # Media & Storage
+  image_picker: ^1.1.2
+  path: ^1.9.1
+  
+  # Notifications
+  flutter_local_notifications: ^20.1.0
+  
+  # Utilities
+  async: ^2.11.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+```
+</CodeGroup>
+
+---
+
+## Platform-Specific Setup
+
+<Tabs>
+  <Tab title="Android">
+    ### Android Setup
+
+    #### Minimum Requirements
+    
+    - **minSdkVersion**: As defined in Flutter's configuration
+    - **targetSdkVersion**: Latest version
+    - **Java 17**: Required for compilation
+
+    #### Configure Gradle
+
+    The Android app configuration is located in `android/app/build.gradle`:
+
+    ```gradle android/app/build.gradle
+    plugins {
+        id "com.android.application"
+        id "kotlin-android"
+        id "dev.flutter.flutter-gradle-plugin"
+        id "com.google.gms.google-services"  // Required for Firebase
+    }
+
+    android {
+        namespace "com.example.larpland"
+        compileSdk flutter.compileSdkVersion
+
+        compileOptions {
+            coreLibraryDesugaringEnabled true
+            sourceCompatibility JavaVersion.VERSION_17
+            targetCompatibility JavaVersion.VERSION_17
+        }
+
+        defaultConfig {
+            applicationId "com.example.larpland"
+            minSdkVersion flutter.minSdkVersion
+            targetSdkVersion flutter.targetSdkVersion
+            multiDexEnabled true  // Required for large apps
+        }
+    }
+
+    dependencies {
+        coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'
+        implementation 'androidx.window:window:1.0.0'
+        implementation 'androidx.window:window-java:1.0.0'
+    }
+    ```
+
+    #### Run on Android
+
+    ```bash
+    flutter run -d android
+    ```
+
+    Or to build a release APK:
+
+    ```bash
+    flutter build apk --release
+    ```
+  </Tab>
+
+  <Tab title="iOS">
+    ### iOS Setup
+
+    #### Requirements
+    
+    - **macOS** with Xcode installed
+    - **CocoaPods**: For managing iOS dependencies
+    - **iOS 12.0+**: Minimum deployment target
+
+    #### Install CocoaPods
+
+    ```bash
+    sudo gem install cocoapods
+    ```
+
+    #### Install iOS Dependencies
+
+    Navigate to the iOS directory and install pods:
+
+    ```bash
+    cd ios
+    pod install
+    cd ..
+    ```
+
+    #### Configure Bundle ID
+
+    The app uses the bundle identifier: `com.example.larpland`
+
+    Update this in `ios/Runner.xcodeproj` if needed for your Firebase project.
+
+    #### Run on iOS
+
+    ```bash
+    flutter run -d ios
+    ```
+
+    <Warning>
+      You need a physical iOS device or iOS Simulator configured in Xcode to run the app.
+    </Warning>
+  </Tab>
+
+  <Tab title="Web">
+    ### Web Setup
+
+    Flutter web support is enabled by default in Flutter 3.3.0+.
+
+    #### Enable Web Support
+
+    If not already enabled:
+
+    ```bash
+    flutter config --enable-web
+    ```
+
+    #### Run on Web
+
+    ```bash
+    flutter run -d chrome
+    ```
+
+    Or build for production:
+
+    ```bash
+    flutter build web
+    ```
+
+    The built files will be in the `build/web` directory.
+
+    <Note>
+      Web builds use the Firebase web configuration from `lib/firebase_options.dart`.
+    </Note>
+  </Tab>
+
+  <Tab title="Desktop">
+    ### Desktop Setup (Windows, macOS, Linux)
+
+    #### Windows Desktop
+
+    Enable Windows desktop support:
+
+    ```bash
+    flutter config --enable-windows-desktop
+    ```
+
+    Run on Windows:
+
+    ```bash
+    flutter run -d windows
+    ```
+
+    #### macOS Desktop
+
+    Enable macOS desktop support:
+
+    ```bash
+    flutter config --enable-macos-desktop
+    ```
+
+    Run on macOS:
+
+    ```bash
+    flutter run -d macos
+    ```
+
+    #### Linux Desktop
+
+    Enable Linux desktop support:
+
+    ```bash
+    flutter config --enable-linux-desktop
+    ```
+
+    Install required Linux dependencies:
+
+    ```bash
+    sudo apt-get install clang cmake ninja-build pkg-config libgtk-3-dev
+    ```
+
+    Run on Linux:
+
+    ```bash
+    flutter run -d linux
+    ```
+
+    <Warning>
+      Linux Firebase configuration in `lib/firebase_options.dart` uses placeholder values. You'll need to configure proper Firebase credentials for Linux deployment.
+    </Warning>
+  </Tab>
+</Tabs>
+
+---
+
+## Verify Installation
+
+After completing the installation, verify everything is working:
+
+<Steps>
+  <Step title="Check Flutter Doctor">
+    Run `flutter doctor` to ensure all dependencies are properly installed:
+    
+    ```bash
+    flutter doctor -v
+    ```
+  </Step>
+
+  <Step title="Run Analyzer">
+    Check for any code issues:
+    
+    ```bash
+    flutter analyze
+    ```
+  </Step>
+
+  <Step title="Run Tests">
+    Execute the test suite:
+    
+    ```bash
+    flutter test
+    ```
+  </Step>
+</Steps>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Firebase Setup" icon="fire" href="/firebase-setup">
+    Configure Firebase services for authentication, database, and storage
+  </Card>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Get the app running in minutes with a quick setup guide
+  </Card>
+</CardGroup>

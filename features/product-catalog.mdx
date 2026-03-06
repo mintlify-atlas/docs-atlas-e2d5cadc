@@ -1,0 +1,355 @@
+---
+title: Product Catalog
+description: Browse, search, and manage LARP equipment with product details and reviews
+---
+
+The product catalog system allows users to browse LARP equipment, costumes, and accessories with full CRUD operations for admins and review capabilities.
+
+## Overview
+
+The product catalog provides:
+
+- **Product listing** with Firebase Firestore backend
+- **Product details** including images, pricing, and stock levels
+- **Product reviews** with ratings and user comments
+- **Admin management** for creating, updating, and deleting products
+- **Image upload** to Firebase Storage
+- **Category filtering** for product organization
+
+## Product Model
+
+Products are represented by the `Product` class:
+
+```dart lib/model/product.dart
+class Product {
+  final int id;
+  final String nombre;
+  final String descripcion;
+  final String precio;
+  final String imagen;
+  final int cantidad;
+  final String valoracionTotal;
+  final String categoria;
+  int cantidadCarrito;
+
+  Product({
+    required this.id,
+    required this.nombre,
+    required this.descripcion,
+    required this.precio,
+    required this.imagen,
+    required this.cantidad,
+    required this.valoracionTotal,
+    required this.categoria,
+    this.cantidadCarrito = 1,
+  });
+
+  factory Product.fromJson(Map<String, dynamic> json) {
+    final id = _asInt(json['id']);
+    final nombre = _asString(json['nombre']);
+    final descripcion = _asString(json['descripcion']);
+    final precio = _asString(json['precio']);
+    final imagen = _asString(json['imagen']);
+    final cantidad = _asInt(json['cantidad']);
+    final valoracionTotal = _asString(json['valoracion_total']);
+    final categoria = _asString(json['categoria']);
+
+    if (id == null ||
+        nombre == null ||
+        descripcion == null ||
+        precio == null ||
+        imagen == null ||
+        cantidad == null ||
+        valoracionTotal == null ||
+        categoria == null) {
+      throw const FormatException('Fallo al cargar producto');
+    }
+
+    return Product(
+      id: id,
+      nombre: nombre,
+      descripcion: descripcion,
+      precio: precio,
+      imagen: imagen,
+      cantidad: cantidad,
+      valoracionTotal: valoracionTotal,
+      categoria: categoria,
+    );
+  }
+}
+```
+
+### Product Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `int` | Unique numeric product ID |
+| `nombre` | `String` | Product name |
+| `descripcion` | `String` | Product description |
+| `precio` | `String` | Price (stored as string for formatting) |
+| `imagen` | `String` | Firebase Storage URL for product image |
+| `cantidad` | `int` | Available stock quantity |
+| `valoracionTotal` | `String` | Average rating (e.g., "4.5") |
+| `categoria` | `String` | Product category |
+| `cantidadCarrito` | `int` | Cart quantity (mutable, defaults to 1) |
+
+## Fetching Products
+
+Retrieve all products from Firestore:
+
+```dart lib/service/product.dart
+Future<List<Product>> fetchProductList() async {
+  FirebaseBackend.ensureInitialized();
+  final snapshot = await FirebaseBackend.products.orderBy('id').get();
+  return snapshot.docs
+      .map(FirebaseBackend.normalizeSnapshotData)
+      .map(_coerceProductPayload)
+      .map(Product.fromJson)
+      .toList(growable: false);
+}
+```
+
+### Process Flow
+
+1. **Fetch all products** from `products` collection
+2. **Order by ID** for consistent ordering
+3. **Normalize timestamps** via `normalizeSnapshotData`
+4. **Coerce types** to ensure valid Product fields
+5. **Parse to Product models** via `fromJson`
+
+## Creating Products (Admin)
+
+Admins can add new products with image upload:
+
+```dart lib/service/product.dart
+Future<void> addProduct(
+  String name,
+  String descripcion,
+  String precio,
+  int stock,
+  String categoria,
+  XFile imagen,
+) async {
+  FirebaseBackend.ensureInitialized();
+  final productId = await FirebaseBackend.nextNumericId('products');
+  final imageUrl = await _uploadProductImage(imagen, productId: productId);
+  final now = FieldValue.serverTimestamp();
+
+  await FirebaseBackend.products.add(<String, dynamic>{
+    'id': productId,
+    'nombre': name.trim(),
+    'descripcion': descripcion.trim(),
+    'precio': precio.trim(),
+    'imagen': imageUrl,
+    'cantidad': stock,
+    'valoracion_total': '0.0',
+    'categoria': categoria.trim(),
+    'created_at': now,
+    'updated_at': now,
+  });
+}
+```
+
+### Creation Process
+
+1. **Generate numeric ID** using atomic counter
+2. **Upload image** to Firebase Storage
+3. **Create Firestore document** with product data
+4. **Set initial rating** to "0.0"
+5. **Add timestamps** for tracking
+
+## Updating Products (Admin)
+
+Update existing products with optional image replacement:
+
+```dart lib/service/product.dart
+Future<void> updateProduct(
+  int id, {
+  String? name,
+  String? descripcion,
+  String? precio,
+  String? valoracionTotal,
+  int? stock,
+  String? categoria,
+  XFile? imagen,
+}) async {
+  FirebaseBackend.ensureInitialized();
+  final doc = await FirebaseBackend.findByNumericId(FirebaseBackend.products, id);
+  final current = doc.data() ?? const <String, dynamic>{};
+
+  String? imageUrl;
+  if (imagen != null) {
+    imageUrl = await _uploadProductImage(imagen, productId: id);
+    final previous = current['imagen'];
+    if (previous is String && previous.startsWith('http')) {
+      await _tryDeleteStorageUrl(previous);
+    }
+  }
+
+  final updates = <String, dynamic>{
+    if (name != null) 'nombre': name.trim(),
+    if (descripcion != null) 'descripcion': descripcion.trim(),
+    if (precio != null) 'precio': precio.trim(),
+    if (stock != null) 'cantidad': stock,
+    if (categoria != null) 'categoria': categoria.trim(),
+    if (valoracionTotal != null) 'valoracion_total': valoracionTotal,
+    if (imageUrl != null) 'imagen': imageUrl,
+    'updated_at': FieldValue.serverTimestamp(),
+  };
+
+  if (updates.length == 1) {
+    // Only updated_at would be sent; avoid pointless write in callers.
+    return;
+  }
+
+  await doc.reference.set(updates, SetOptions(merge: true));
+}
+```
+
+### Update Features
+
+- **Partial updates** - Only specified fields are updated
+- **Image replacement** - Uploads new image and deletes old one
+- **Automatic timestamps** - `updated_at` is always set
+- **Validation** - Skips update if no fields changed
+
+## Deleting Products (Admin)
+
+Delete products and their associated images:
+
+```dart lib/service/product.dart
+Future<void> deleteProduct(int id) async {
+  FirebaseBackend.ensureInitialized();
+  final doc = await FirebaseBackend.findByNumericId(FirebaseBackend.products, id);
+  final data = doc.data();
+  final imageUrl = data?['imagen'];
+  if (imageUrl is String && imageUrl.startsWith('http')) {
+    await _tryDeleteStorageUrl(imageUrl);
+  }
+  await doc.reference.delete();
+}
+```
+
+<Warning>
+Deleting a product removes it from the catalog but does not affect existing orders containing that product.
+</Warning>
+
+## Image Management
+
+Product images are uploaded to Firebase Storage:
+
+```dart lib/service/product.dart
+Future<String> _uploadProductImage(
+  XFile imagen, {
+  required int productId,
+}) async {
+  final Uint8List bytes = await imagen.readAsBytes();
+  final extension = p.extension(imagen.name).toLowerCase();
+  final normalizedExt = extension.isEmpty ? '.jpg' : extension;
+  final path =
+      'products/$productId/${DateTime.now().millisecondsSinceEpoch}$normalizedExt';
+  final ref = FirebaseBackend.storage.ref(path);
+
+  final metadata = SettableMetadata(
+    contentType: _contentTypeFromExtension(normalizedExt),
+  );
+  try {
+    await ref.putData(bytes, metadata);
+    return await ref.getDownloadURL();
+  } on FirebaseException catch (e) {
+    // Error handling...
+  }
+}
+
+String _contentTypeFromExtension(String ext) {
+  switch (ext) {
+    case '.png':
+      return 'image/png';
+    case '.webp':
+      return 'image/webp';
+    case '.gif':
+      return 'image/gif';
+    case '.jpeg':
+    case '.jpg':
+    default:
+      return 'image/jpeg';
+  }
+}
+```
+
+### Storage Structure
+
+```
+products/
+  {productId}/
+    {timestamp}.jpg
+    {timestamp}.png
+```
+
+### Image Features
+
+- **Automatic format detection** from file extension
+- **Unique filenames** using timestamps
+- **Content-Type headers** for proper browser display
+- **Download URLs** returned for Firestore storage
+
+## Product Reviews
+
+Products display user reviews with ratings. Reviews are stored in a separate `reviews` collection and displayed using the `ReviewCard` component:
+
+```dart lib/component/review_card.dart
+class ReviewCard extends StatefulWidget {
+  final ProductReviews review;
+
+  const ReviewCard({super.key, required this.review});
+
+  @override
+  State<ReviewCard> createState() => _ReviewCardState();
+}
+```
+
+### Review Display
+
+- **User names** fetched from user profiles
+- **Star ratings** displayed with icons
+- **Timestamps** formatted as relative dates
+- **User avatars** with initials
+
+<Info>
+Review functionality is managed through the `reviews` Firestore collection. The average rating is stored in the product's `valoracion_total` field.
+</Info>
+
+## Firestore Schema
+
+### Products Collection
+
+```json
+{
+  "id": 1,
+  "nombre": "Medieval Sword",
+  "descripcion": "High-quality foam sword for LARP combat",
+  "precio": "49.99",
+  "imagen": "https://storage.googleapis.com/...",
+  "cantidad": 15,
+  "valoracion_total": "4.5",
+  "categoria": "Weapons",
+  "created_at": "2024-01-15T10:30:00Z",
+  "updated_at": "2024-01-20T14:22:00Z"
+}
+```
+
+## Related Resources
+
+<CardGroup cols={2}>
+  <Card title="Shopping Cart" icon="cart-shopping" href="/features/shopping-cart">
+    Learn how products are added to cart
+  </Card>
+  
+  <Card title="Firebase Backend" icon="database" href="/api/firebase-backend">
+    Firebase integration details
+  </Card>
+  
+  <Card title="Admin Features" icon="shield" href="/features/user-roles">
+    Admin-only product management
+  </Card>
+</CardGroup>

@@ -1,0 +1,225 @@
+---
+title: Managing Users
+description: How to view and manage users in the LarpLand admin panel
+---
+
+The user management section provides an overview of all registered users in the LarpLand system, allowing you to view user information and monitor your user base.
+
+## Viewing User List
+
+The user list displays all registered users with key information:
+
+- **User Avatar**: Circle avatar with the first letter of the user's name
+- **User Name**: Full name of the user
+- **User ID**: Unique identifier for the user
+- **Email Address**: User's registered email
+
+### User List Layout
+
+```dart
+// User card display from users_list.dart:143-175
+Card(
+  margin: const EdgeInsets.only(bottom: 10),
+  child: ListTile(
+    leading: CircleAvatar(
+      backgroundColor: const Color(0xFF2C4432),
+      child: Text(
+        user.name.isNotEmpty
+            ? user.name[0].toUpperCase()
+            : '?',
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    ),
+    title: Text(
+      user.name,
+      style: const TextStyle(fontWeight: FontWeight.w600),
+    ),
+    subtitle: Text(
+      'ID ${user.id} - ${user.email}',
+      style: const TextStyle(color: Colors.black54),
+    ),
+  ),
+)
+```
+
+## User Search
+
+Quickly find specific users using the search functionality:
+
+<Steps>
+  <Step title="Enter Search Query">
+    Type in the search bar at the top of the user list. You can search by:
+    - User name
+    - Email address
+    - User ID
+  </Step>
+  
+  <Step title="View Results">
+    Results update in real-time as you type. The search is case-insensitive.
+  </Step>
+  
+  <Step title="Clear Search">
+    Click the X icon in the search bar to clear the search and view all users.
+  </Step>
+</Steps>
+
+### Search Implementation
+
+```dart
+// Search logic from users_list.dart:39-52
+List<User> _applyFilters(List<User> users) {
+  final query = _searchController.text.trim().toLowerCase();
+  return users.where((user) {
+    if (user.id == widget.excludeUserId) {
+      return false;
+    }
+    if (query.isEmpty) {
+      return true;
+    }
+    return user.name.toLowerCase().contains(query) ||
+        user.email.toLowerCase().contains(query) ||
+        '${user.id}'.contains(query);
+  }).toList(growable: false);
+}
+```
+
+## User Roles and Permissions
+
+The LarpLand system uses a role-based access control system:
+
+### Role Field (`rol`)
+
+Each user has a `rol` field that determines their permissions:
+
+- **Admin Role**: Users with admin role can access the admin panel
+- **Regular User**: Standard users without admin privileges
+
+The admin panel automatically excludes the current admin user from the list to avoid self-management issues:
+
+```dart
+// From users_list.dart:42-44
+if (user.id == widget.excludeUserId) {
+  return false;
+}
+```
+
+### Permission Levels
+
+<CardGroup cols={2}>
+  <Card title="Admin Users" icon="shield-halved">
+    Full access to:
+    - Admin panel
+    - User management
+    - Product management
+    - Order management
+    - Event management
+  </Card>
+  
+  <Card title="Regular Users" icon="user">
+    Access to:
+    - User profile
+    - Product browsing
+    - Shopping cart
+    - Order history
+    - Event registration
+  </Card>
+</CardGroup>
+
+## User List Features
+
+### Refresh Functionality
+
+Keep the user list up to date:
+
+- Click the refresh button in the top-right corner
+- Pull down on the list (on touch devices)
+- The list refreshes automatically when returning to the Users tab
+
+### Empty States
+
+The user list handles empty states gracefully:
+
+```dart
+// From users_list.dart:125-132
+_EmptyState(
+  icon: hasQuery
+      ? Icons.search_off_outlined
+      : Icons.group_off_outlined,
+  message: hasQuery
+      ? 'No hay usuarios con ese filtro'
+      : 'Sin usuarios',
+)
+```
+
+## User Information Display
+
+Each user card shows:
+
+1. **Avatar**: Color-coded circle with user initial
+2. **Name**: Displayed prominently as the title
+3. **ID and Email**: Shown in the subtitle for reference
+
+### User Model Structure
+
+The user data includes:
+
+- `id`: Unique user identifier
+- `name`: User's full name
+- `email`: Registered email address
+- `rol`: Role/permission level
+
+## Accessing User Details
+
+The current implementation provides a read-only view of users. To view detailed information:
+
+<Steps>
+  <Step title="Search for User">
+    Use the search bar to find the specific user by name, email, or ID.
+  </Step>
+  
+  <Step title="View User Card">
+    The user card displays all available information including ID, name, and email.
+  </Step>
+</Steps>
+
+<Note>
+The user management section currently provides viewing capabilities. User role modifications and detailed user management features may require database-level access.
+</Note>
+
+## Error Handling
+
+The user list includes comprehensive error handling:
+
+```dart
+// Error state from users_list.dart:214-250
+class _ErrorState extends StatelessWidget {
+  final String message;
+  final Future<void> Function() onRetry;
+  
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        children: [
+          const Icon(Icons.error_outline),
+          Text(message),
+          OutlinedButton.icon(
+            onPressed: onRetry,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Reintentar'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+```
+
+If the user list fails to load, an error message is displayed with a retry button.
+
+<Tip>
+Use the search functionality to quickly locate specific users when dealing with large user bases. Searching by ID is particularly useful for support tasks.
+</Tip>

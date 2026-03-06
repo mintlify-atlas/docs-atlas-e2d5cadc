@@ -1,0 +1,463 @@
+---
+title: Shopping Cart & Checkout
+description: Full-featured shopping cart with state management, checkout flow, and order tracking
+---
+
+The shopping cart system provides a complete e-commerce experience with Flutter Provider state management, cart persistence, and order processing through Firebase Firestore.
+
+## Overview
+
+The shopping cart includes:
+
+- **State management** with `CartProvider` using Flutter Provider
+- **Add/remove items** with quantity tracking
+- **Stock validation** to prevent over-ordering
+- **Cart total calculation** with automatic price computation
+- **Checkout flow** creating orders in Firestore
+- **Order history** for users and admins
+
+## CartProvider
+
+The cart is managed by `CartProvider`, a `ChangeNotifier` that maintains cart state:
+
+```dart lib/provider/cart_provider.dart
+class CartProvider with ChangeNotifier {
+  final Map<int, Product> _items = {};
+
+  Map<int, Product> get items => {..._items};
+
+  void addProduct(Product product) {
+    if (_items.containsKey(product.id)) {
+      if (_items[product.id]!.cantidadCarrito < product.cantidad) {
+        _items.update(
+          product.id,
+          (existingProduct) => Product(
+            id: existingProduct.id,
+            nombre: existingProduct.nombre,
+            precio: existingProduct.precio,
+            cantidad: existingProduct.cantidad,
+            cantidadCarrito: existingProduct.cantidadCarrito + 1, 
+            descripcion: existingProduct.descripcion,
+            imagen: existingProduct.imagen,
+            valoracionTotal: existingProduct.valoracionTotal,
+            categoria: existingProduct.categoria,
+          ),
+        );
+      } else {
+        throw 'Producto fuera de stock ';
+      }
+    } else {
+      _items.putIfAbsent(
+        product.id,
+        () => Product(
+          id: product.id,
+          nombre: product.nombre,
+          precio: product.precio,
+          cantidad: product.cantidad,
+          cantidadCarrito: 1,
+          descripcion: product.descripcion,
+          imagen: product.imagen,
+          valoracionTotal: product.valoracionTotal,
+          categoria: product.categoria,
+        ),
+      );
+    }
+    notifyListeners();
+  }
+
+  void removeProduct(int productId) {
+    if (_items.containsKey(productId)) {
+      if (_items[productId]!.cantidadCarrito > 1) {
+        _items.update(
+          productId,
+          (existingProduct) => Product(
+            id: existingProduct.id,
+            nombre: existingProduct.nombre,
+            precio: existingProduct.precio,
+            cantidad: existingProduct.cantidad,
+            cantidadCarrito: existingProduct.cantidadCarrito - 1,
+            descripcion: existingProduct.descripcion,
+            imagen: existingProduct.imagen,
+            valoracionTotal: existingProduct.valoracionTotal,
+            categoria: existingProduct.categoria,
+          ),
+        );
+      } else {
+        _items.remove(productId);
+      }
+    }
+    notifyListeners();
+  }
+
+  void clearCart() {
+    _items.clear();
+    notifyListeners();
+  }
+
+  double get totalAmount {
+    double total = 0.0;
+    _items.forEach((key, product) {
+      total += double.parse(product.precio) * product.cantidadCarrito;
+    });
+    return total;
+  }
+
+  int get totalItemsCount {
+    int total = 0;
+    for (final product in _items.values) {
+      total += product.cantidadCarrito;
+    }
+    return total;
+  }
+}
+```
+
+### Cart Operations
+
+#### Adding Products
+
+```dart
+void addProduct(Product product)
+```
+
+- **New product**: Adds with `cantidadCarrito = 1`
+- **Existing product**: Increments `cantidadCarrito` by 1
+- **Stock validation**: Throws error if exceeds available stock
+- **Notifies listeners**: Updates UI automatically
+
+#### Removing Products
+
+```dart
+void removeProduct(int productId)
+```
+
+- **Multiple quantity**: Decrements `cantidadCarrito` by 1
+- **Single quantity**: Removes product from cart entirely
+- **Notifies listeners**: Updates UI automatically
+
+#### Clearing Cart
+
+```dart
+void clearCart()
+```
+
+- **Removes all items** from cart
+- **Called after checkout** to reset cart state
+
+## Cart Calculations
+
+### Total Amount
+
+```dart
+double get totalAmount {
+  double total = 0.0;
+  _items.forEach((key, product) {
+    total += double.parse(product.precio) * product.cantidadCarrito;
+  });
+  return total;
+}
+```
+
+Calculates the total price by multiplying each product's price by its cart quantity.
+
+### Total Items Count
+
+```dart
+int get totalItemsCount {
+  int total = 0;
+  for (final product in _items.values) {
+    total += product.cantidadCarrito;
+  }
+  return total;
+}
+```
+
+Returns the sum of all product quantities in the cart.
+
+## Checkout Flow
+
+Orders are created using the `createUserOrder` function:
+
+```dart lib/service/order.dart
+Future<int> createUserOrder({
+  required int userId,
+  required List<Product> cartItems,
+  required double subtotalAmount,
+  required double shippingAmount,
+  required double totalAmount,
+  String status = 'completed',
+  String? paymentMethod,
+  String? deliveryMethod,
+  String? customerName,
+  String? customerPhone,
+  String? notes,
+  Map<String, dynamic>? shippingAddress,
+}) async {
+  FirebaseBackend.ensureInitialized();
+  if (cartItems.isEmpty) {
+    throw const AppError(
+      code: 'validation.empty_cart',
+      message: 'No hay productos para registrar en el pedido.',
+    );
+  }
+
+  final orderId = await FirebaseBackend.nextNumericId('orders');
+  final normalizedItems = cartItems
+      .map((item) {
+        final unitPrice = _parsePrice(item.precio);
+        final quantity = item.cantidadCarrito;
+        return <String, dynamic>{
+          'product_id': item.id,
+          'product_name': item.nombre,
+          'unit_price': item.precio,
+          'quantity': quantity,
+          'line_total': unitPrice * quantity,
+          'image_url': item.imagen,
+        };
+      })
+      .toList(growable: false);
+
+  final computedSubtotal = normalizedItems.fold<double>(
+    0,
+    (acc, item) => acc + ((item['line_total'] as num?)?.toDouble() ?? 0),
+  );
+  final totalItems = normalizedItems.fold<int>(
+    0,
+    (acc, item) => acc + ((item['quantity'] as num?)?.toInt() ?? 0),
+  );
+
+  await _ordersCollection.add(<String, dynamic>{
+    'id': orderId,
+    'user_id': userId,
+    'status': status,
+    'payment_method': paymentMethod ?? 'card',
+    'delivery_method': deliveryMethod ?? 'standard',
+    if (customerName != null) 'customer_name': customerName,
+    if (customerPhone != null) 'customer_phone': customerPhone,
+    if (notes != null && notes.trim().isNotEmpty) 'notes': notes.trim(),
+    if (shippingAddress != null) 'shipping_address': shippingAddress,
+    'subtotal_amount': subtotalAmount,
+    'shipping_amount': shippingAmount,
+    'total_amount': totalAmount,
+    'computed_subtotal_amount': computedSubtotal,
+    'total_items': totalItems,
+    'items': normalizedItems,
+    'created_at': FieldValue.serverTimestamp(),
+    'updated_at': FieldValue.serverTimestamp(),
+  });
+
+  return orderId;
+}
+```
+
+### Order Creation Process
+
+1. **Validate cart** is not empty
+2. **Generate order ID** using atomic counter
+3. **Normalize cart items** to order line items
+4. **Calculate totals** for validation
+5. **Create Firestore document** in `orders` collection
+6. **Return order ID** for confirmation display
+
+### Order Data Structure
+
+```json
+{
+  "id": 123,
+  "user_id": 456,
+  "status": "completed",
+  "payment_method": "card",
+  "delivery_method": "standard",
+  "subtotal_amount": 99.98,
+  "shipping_amount": 10.00,
+  "total_amount": 109.98,
+  "computed_subtotal_amount": 99.98,
+  "total_items": 2,
+  "items": [
+    {
+      "product_id": 1,
+      "product_name": "Medieval Sword",
+      "unit_price": "49.99",
+      "quantity": 2,
+      "line_total": 99.98,
+      "image_url": "https://..."
+    }
+  ],
+  "created_at": "2024-01-20T15:30:00Z",
+  "updated_at": "2024-01-20T15:30:00Z"
+}
+```
+
+## Order Management
+
+### Fetching User Orders
+
+```dart lib/service/order.dart
+Future<List<UserOrder>> fetchUserOrders(int userId) async {
+  FirebaseBackend.ensureInitialized();
+  final snapshot = await FirebaseBackend.firestore
+      .collection('orders')
+      .where('user_id', isEqualTo: userId)
+      .get();
+
+  final orders = snapshot.docs
+      .map(FirebaseBackend.normalizeSnapshotData)
+      .map(UserOrder.fromJson)
+      .toList(growable: false);
+
+  final sorted = List<UserOrder>.from(orders);
+  sorted.sort((a, b) {
+    final aDate = a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+    final bDate = b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+    return bDate.compareTo(aDate);
+  });
+  return sorted;
+}
+```
+
+Returns all orders for a specific user, sorted by creation date (newest first).
+
+### Fetching All Orders (Admin)
+
+```dart lib/service/order.dart
+Future<List<UserOrder>> fetchAllOrders() async {
+  FirebaseBackend.ensureInitialized();
+  final snapshot = await _ordersCollection.get();
+  final orders = snapshot.docs
+      .map(FirebaseBackend.normalizeSnapshotData)
+      .map(UserOrder.fromJson)
+      .toList(growable: false);
+
+  final sorted = List<UserOrder>.from(orders);
+  sorted.sort((a, b) {
+    final aDate = a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+    final bDate = b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+    return bDate.compareTo(aDate);
+  });
+  return sorted;
+}
+```
+
+Returns all orders from all users (admin-only), sorted by creation date.
+
+### Updating Order Status (Admin)
+
+```dart lib/service/order.dart
+Future<void> updateOrderStatus({
+  required int orderId,
+  required String status,
+}) async {
+  FirebaseBackend.ensureInitialized();
+  final ref = await FirebaseBackend.findRefByNumericId(_ordersCollection, orderId);
+  await ref.set(<String, dynamic>{
+    'status': status.trim().toLowerCase(),
+    'updated_at': FieldValue.serverTimestamp(),
+  }, SetOptions(merge: true));
+}
+```
+
+#### Order Status Values
+
+- `pending` - Order placed, awaiting processing
+- `processing` - Order being prepared
+- `shipped` - Order shipped to customer
+- `completed` - Order delivered
+- `cancelled` - Order cancelled
+
+## Using CartProvider in UI
+
+### Setup Provider
+
+```dart
+ChangeNotifierProvider(
+  create: (_) => CartProvider(),
+  child: MyApp(),
+)
+```
+
+### Access Cart in Widgets
+
+```dart
+// Get cart instance
+final cart = Provider.of<CartProvider>(context);
+
+// Listen to changes
+final cart = context.watch<CartProvider>();
+
+// Read without listening
+final cart = context.read<CartProvider>();
+```
+
+### Add Product to Cart
+
+```dart
+IconButton(
+  onPressed: () {
+    try {
+      context.read<CartProvider>().addProduct(product);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Producto añadido al carrito')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
+  },
+  icon: Icon(Icons.add_shopping_cart),
+)
+```
+
+### Display Cart Total
+
+```dart
+Text(
+  'Total: \$${cart.totalAmount.toStringAsFixed(2)}',
+  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+)
+```
+
+### Display Item Count Badge
+
+```dart
+Badge(
+  label: Text('${cart.totalItemsCount}'),
+  child: Icon(Icons.shopping_cart),
+)
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Stock Validation">
+    Always validate stock availability before adding to cart. The `addProduct` method throws an error if the requested quantity exceeds available stock.
+  </Accordion>
+  
+  <Accordion title="Price Formatting">
+    Prices are stored as strings to preserve formatting (e.g., "49.99"). Parse to double only when calculating totals.
+  </Accordion>
+  
+  <Accordion title="Cart Persistence">
+    The current implementation uses in-memory state. For persistent carts across app restarts, consider using shared_preferences or local database storage.
+  </Accordion>
+  
+  <Accordion title="Concurrent Updates">
+    CartProvider uses `notifyListeners()` to update UI. All cart modifications are synchronous and thread-safe within the Flutter framework.
+  </Accordion>
+</AccordionGroup>
+
+## Related Resources
+
+<CardGroup cols={2}>
+  <Card title="Product Catalog" icon="store" href="/features/product-catalog">
+    Browse products to add to cart
+  </Card>
+  
+  <Card title="User Roles" icon="users" href="/features/user-roles">
+    Admin order management
+  </Card>
+  
+  <Card title="Firebase Backend" icon="database" href="/api/firebase-backend">
+    Order storage in Firestore
+  </Card>
+</CardGroup>

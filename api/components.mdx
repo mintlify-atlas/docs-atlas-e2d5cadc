@@ -1,0 +1,228 @@
+---
+title: UI Components
+description: Reusable Flutter widgets for LarpLand
+---
+
+LarpLand provides custom Flutter widgets for displaying events, reviews, and network images with fallback handling.
+
+## EventCard
+
+A styled card widget for displaying roleplay event information.
+
+**Source:** `lib/component/event_card.dart:4`
+
+### Constructor
+
+```dart
+const EventCard({
+  Key? key,
+  required RoleplayEvent event,
+  Widget? trailingAction,
+  EdgeInsetsGeometry? margin,
+})
+```
+
+### Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `event` | `RoleplayEvent` | The event data to display |
+| `trailingAction` | `Widget?` | Optional action widget (e.g., register button) |
+| `margin` | `EdgeInsetsGeometry?` | Optional card margin |
+
+### Features
+
+- Displays event name, description, start date, and end date
+- Parchment-themed styling with rounded borders
+- Date formatting with icons for start/end times
+- Truncates long text with ellipsis
+- Optional trailing action area for buttons
+
+### Visual Design
+
+- Background: Parchment white (`#FFFAF0`)
+- Border: Semi-transparent brown (`#5C3F2D` at 20% opacity)
+- Icon background: Light parchment (`#F3EBD4`)
+- Text color: Dark green (`#2C4432`)
+
+### Example
+
+```dart
+import 'package:larpland/component/event_card.dart';
+import 'package:larpland/model/roleplay_event.dart';
+
+EventCard(
+  event: myEvent,
+  trailingAction: ElevatedButton(
+    onPressed: () => registerForEvent(),
+    child: Text('Register'),
+  ),
+  margin: EdgeInsets.all(16),
+)
+```
+
+---
+
+## ReviewCard
+
+A stateful card widget for displaying product reviews with user information.
+
+**Source:** `lib/component/review_card.dart:6`
+
+### Constructor
+
+```dart
+const ReviewCard({
+  Key? key,
+  required ProductReviews review,
+})
+```
+
+### Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `review` | `ProductReviews` | The review data to display |
+
+### Features
+
+- Asynchronously loads user information from `userId`
+- Caches user data to prevent redundant API calls
+- Displays user avatar with initial letter
+- Shows star rating visualization (1-5 stars)
+- Formats timestamp with relative dates ("Today", "Yesterday", "X days ago")
+- Handles loading and error states gracefully
+
+### Visual Design
+
+- Avatar background: Light parchment (`#F3EBD4`)
+- Username color: Dark green (`#2C4432`)
+- Star color: Amber
+- Border: Light brown with transparency
+
+### Date Formatting
+
+- Same day: "Hoy, HH:MM"
+- Previous day: "Ayer, HH:MM"
+- 2-6 days ago: "Hace X dias"
+- Older: "DD/MM/YYYY"
+
+### Example
+
+```dart
+import 'package:larpland/component/review_card.dart';
+import 'package:larpland/model/user_review.dart';
+
+ReviewCard(
+  review: ProductReviews(
+    id: 1,
+    userId: 123,
+    productId: 456,
+    rating: 5,
+    comment: 'Excellent product!',
+    createdAt: DateTime.now(),
+  ),
+)
+```
+
+<Note>
+ReviewCard maintains a static cache (`_userFutureCache`) to prevent duplicate API calls when the same user has multiple reviews visible on screen.
+</Note>
+
+---
+
+## SmartNetworkImage
+
+An intelligent network image widget with multiple URL fallback strategies and authentication support.
+
+**Source:** `lib/component/smart_network_image.dart:5`
+
+### Constructor
+
+```dart
+const SmartNetworkImage({
+  Key? key,
+  required String imagePath,
+  required double height,
+  double? width,
+  BoxFit fit = BoxFit.cover,
+  BorderRadius? borderRadius,
+})
+```
+
+### Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `imagePath` | `String` | Image path or URL |
+| `height` | `double` | Fixed image height |
+| `width` | `double?` | Fixed width (defaults to full width) |
+| `fit` | `BoxFit` | How to fit the image (default: cover) |
+| `borderRadius` | `BorderRadius?` | Optional border radius |
+
+### Features
+
+- **URL Candidate Resolution**: Uses `ApiConfig.resolveImageCandidates()` to generate multiple URL variations
+- **Automatic Fallback**: Tries each candidate URL sequentially on error
+- **Authentication Support**: Automatically retries with Bearer token headers if initial requests fail
+- **CORS Handling**: Tries without auth headers first, then with headers to handle CORS restrictions
+- **Loading States**: Shows progress indicator while loading or retrying
+- **Error Handling**: Displays broken image icon when all candidates fail
+- **Border Radius**: Optional clipping with rounded corners
+
+### Behavior
+
+1. Resolves image path to multiple URL candidates
+2. Attempts to load first URL without authentication
+3. On error, moves to next candidate URL
+4. After exhausting all candidates, retries with Authorization headers (if token available)
+5. Shows broken image icon if all attempts fail
+
+### Example
+
+```dart
+import 'package:larpland/component/smart_network_image.dart';
+
+SmartNetworkImage(
+  imagePath: 'products/123/image.jpg',
+  height: 200,
+  width: 200,
+  fit: BoxFit.cover,
+  borderRadius: BorderRadius.circular(12),
+)
+```
+
+### Internal State
+
+**Source:** `lib/component/smart_network_image.dart:25`
+
+- `_candidates`: List of resolved URL variations
+- `_index`: Current candidate being tried
+- `_useAuthHeader`: Whether to include Authorization header
+
+### Error Recovery
+
+```dart
+// Progression:
+fallbackUrls[0] without auth
+  ↓ (on error)
+fallbackUrls[1] without auth
+  ↓ (on error)
+...
+  ↓ (on error)
+fallbackUrls[0] with Bearer token
+  ↓ (on error)
+fallbackUrls[1] with Bearer token
+  ↓ (on error)
+...
+  ↓ (on error)
+Show broken image icon
+```
+
+<Tip>
+This component is particularly useful when working with Firebase Storage URLs that may have varying formats or when dealing with legacy image paths that need multiple URL resolution strategies.
+</Tip>
+
+<Warning>
+On web platforms, custom Authorization headers may trigger CORS preflight requests. The component handles this by attempting without headers first.
+</Warning>

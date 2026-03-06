@@ -1,0 +1,506 @@
+---
+title: Theming & Styling
+description: Learn about LarpLand's custom theme implementation and design system
+---
+
+LarpLand uses a custom Material 3 theme inspired by medieval fantasy aesthetics with a parchment-and-forest color palette.
+
+## Color Palette
+
+The application uses a carefully crafted color scheme that evokes medieval scrolls and adventure:
+
+```dart
+// From lib/main.dart _buildTheme()
+const background = Color(0xFFEDE3C8);  // Parchment background
+const ink = Color(0xFF211A16);         // Dark ink for text
+const forest = Color(0xFF2C4432);      // Forest green (primary)
+const ember = Color(0xFF8C3C2F);       // Ember red (secondary)
+const brass = Color(0xFFC9953E);       // Brass gold (tertiary/accent)
+const panel = Color(0xFFF8F2DE);       // Light panel surface
+```
+
+### Color Usage
+
+| Color | Hex | Usage |
+|-------|-----|-------|
+| **Forest** | `#2C4432` | Primary buttons, icons, app bar icons, borders |
+| **Ember** | `#8C3C2F` | Secondary actions, warnings, highlights |
+| **Brass** | `#C9953E` | Focused inputs, accents, badges, selected states |
+| **Parchment** | `#EDE3C8` | Main background, scaffold background |
+| **Panel** | `#F8F2DE` | Card surfaces, input fields, app bar background |
+| **Ink** | `#211A16` | Body text, headings, foreground text |
+
+## Material 3 Theme
+
+The app uses Material 3 with custom color schemes and component themes:
+
+```dart
+final scheme = ColorScheme.fromSeed(
+  seedColor: forest,
+  brightness: Brightness.light,
+).copyWith(
+  primary: forest,
+  secondary: ember,
+  tertiary: brass,
+  surface: panel,
+  onSurface: ink,
+);
+
+final base = ThemeData(
+  useMaterial3: true,
+  colorScheme: scheme,
+  scaffoldBackgroundColor: background,
+  fontFamily: 'serif',
+);
+```
+
+### Theme Configuration
+
+The `_buildTheme()` method in `main.dart` returns a fully configured `ThemeData`:
+
+```dart
+ThemeData _buildTheme() {
+  const background = Color(0xFFEDE3C8);
+  const ink = Color(0xFF211A16);
+  const forest = Color(0xFF2C4432);
+  const ember = Color(0xFF8C3C2F);
+  const brass = Color(0xFFC9953E);
+  const panel = Color(0xFFF8F2DE);
+
+  final scheme = ColorScheme.fromSeed(
+    seedColor: forest,
+    brightness: Brightness.light,
+  ).copyWith(
+    primary: forest,
+    secondary: ember,
+    tertiary: brass,
+    surface: panel,
+    onSurface: ink,
+  );
+
+  final base = ThemeData(
+    useMaterial3: true,
+    colorScheme: scheme,
+    scaffoldBackgroundColor: background,
+    fontFamily: 'serif',
+  );
+
+  return base.copyWith(
+    textTheme: base.textTheme
+        .apply(
+          bodyColor: ink,
+          displayColor: ink,
+          fontFamily: 'serif',
+        )
+        .copyWith(
+          titleLarge: base.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.3,
+          ),
+          headlineSmall: base.textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.4,
+          ),
+        ),
+    appBarTheme: const AppBarTheme(
+      centerTitle: false,
+      backgroundColor: Color(0xFFF8F2DE),
+      foregroundColor: Color(0xFF211A16),
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      surfaceTintColor: Colors.transparent,
+      shadowColor: Colors.transparent,
+      titleTextStyle: TextStyle(
+        fontFamily: 'serif',
+        fontSize: 22,
+        fontWeight: FontWeight.w700,
+        color: Color(0xFF211A16),
+        letterSpacing: 0.3,
+      ),
+      iconTheme: IconThemeData(color: Color(0xFF2C4432)),
+      actionsIconTheme: IconThemeData(color: Color(0xFF2C4432)),
+    ),
+    cardTheme: CardThemeData(
+      elevation: 0,
+      surfaceTintColor: Colors.transparent,
+      color: const Color(0xFFFFFAF0),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: forest.withValues(alpha: 0.22)),
+      ),
+    ),
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        backgroundColor: forest,
+        foregroundColor: const Color(0xFFF8F2DE),
+        textStyle: const TextStyle(
+          fontFamily: 'serif',
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.3,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+        ),
+      ),
+    ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: forest,
+        foregroundColor: const Color(0xFFF8F2DE),
+        elevation: 0,
+        textStyle: const TextStyle(
+          fontFamily: 'serif',
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.3,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+        ),
+      ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: forest,
+        side: BorderSide(color: forest.withValues(alpha: 0.5)),
+        textStyle: const TextStyle(
+          fontFamily: 'serif',
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.2,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+        ),
+      ),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: panel,
+      labelStyle: const TextStyle(color: Color(0xFF4A413A)),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: forest.withValues(alpha: 0.35)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: forest.withValues(alpha: 0.25)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: brass, width: 1.4),
+      ),
+    ),
+    snackBarTheme: const SnackBarThemeData(
+      behavior: SnackBarBehavior.floating,
+    ),
+    dividerColor: const Color(0xFF9F8B68),
+  );
+}
+```
+
+## Typography
+
+The application uses a serif font family for a classic, manuscript-like appearance:
+
+```dart
+fontFamily: 'serif'
+```
+
+### Text Styles
+
+- **Body text**: Serif font in ink color (`#211A16`)
+- **Headings**: Bold serif with increased letter spacing
+- **Buttons**: Bold serif with moderate letter spacing (0.2-0.3)
+- **App bar titles**: 22pt, bold, slight letter spacing
+
+### Custom Text Theme
+
+```dart
+textTheme: base.textTheme
+    .apply(
+      bodyColor: ink,
+      displayColor: ink,
+      fontFamily: 'serif',
+    )
+    .copyWith(
+      titleLarge: base.textTheme.titleLarge?.copyWith(
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.3,
+      ),
+      headlineSmall: base.textTheme.headlineSmall?.copyWith(
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.4,
+      ),
+    )
+```
+
+## Component Themes
+
+### AppBar
+
+- **Background**: Panel color (`#F8F2DE`)
+- **Text**: Ink color (`#211A16`)
+- **Icons**: Forest green (`#2C4432`)
+- **Elevation**: 0 (flat design)
+- **Title**: 22pt bold serif
+
+```dart
+appBarTheme: const AppBarTheme(
+  centerTitle: false,
+  backgroundColor: Color(0xFFF8F2DE),
+  foregroundColor: Color(0xFF211A16),
+  elevation: 0,
+  scrolledUnderElevation: 0,
+  surfaceTintColor: Colors.transparent,
+  shadowColor: Colors.transparent,
+  titleTextStyle: TextStyle(
+    fontFamily: 'serif',
+    fontSize: 22,
+    fontWeight: FontWeight.w700,
+    color: Color(0xFF211A16),
+    letterSpacing: 0.3,
+  ),
+  iconTheme: IconThemeData(color: Color(0xFF2C4432)),
+  actionsIconTheme: IconThemeData(color: Color(0xFF2C4432)),
+)
+```
+
+### Cards
+
+- **Background**: Off-white (`#FFFAF0`)
+- **Border**: Forest green with 22% opacity
+- **Border radius**: 20px (rounded)
+- **Elevation**: 0 (flat with border)
+
+```dart
+cardTheme: CardThemeData(
+  elevation: 0,
+  surfaceTintColor: Colors.transparent,
+  color: const Color(0xFFFFFAF0),
+  shape: RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(20),
+    side: BorderSide(color: forest.withValues(alpha: 0.22)),
+  ),
+)
+```
+
+### Buttons
+
+All buttons use 14px border radius for consistent rounded corners.
+
+#### FilledButton
+- **Background**: Forest green
+- **Text**: Panel color (light)
+- **Font**: Bold serif
+
+#### ElevatedButton
+- **Background**: Forest green
+- **Text**: Panel color (light)
+- **Elevation**: 0
+- **Font**: Bold serif
+
+#### OutlinedButton
+- **Border**: Forest green (50% opacity)
+- **Text**: Forest green
+- **Font**: Bold serif
+
+### Input Fields
+
+- **Background**: Panel color (`#F8F2DE`)
+- **Border**: Forest green with varying opacity
+  - Enabled: 25% opacity
+  - Default: 35% opacity
+  - Focused: Brass color, 1.4px width
+- **Border radius**: 14px
+- **Label**: Muted brown (`#4A413A`)
+
+```dart
+inputDecorationTheme: InputDecorationTheme(
+  filled: true,
+  fillColor: panel,
+  labelStyle: const TextStyle(color: Color(0xFF4A413A)),
+  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+  border: OutlineInputBorder(
+    borderRadius: BorderRadius.circular(14),
+    borderSide: BorderSide(color: forest.withValues(alpha: 0.35)),
+  ),
+  enabledBorder: OutlineInputBorder(
+    borderRadius: BorderRadius.circular(14),
+    borderSide: BorderSide(color: forest.withValues(alpha: 0.25)),
+  ),
+  focusedBorder: OutlineInputBorder(
+    borderRadius: BorderRadius.circular(14),
+    borderSide: const BorderSide(color: brass, width: 1.4),
+  ),
+)
+```
+
+## Gradients
+
+The app uses gradients for visual depth:
+
+### Home Screen Background
+```dart
+Container(
+  decoration: const BoxDecoration(
+    gradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFFEFE4C8), Color(0xFFE7D9BA)],
+    ),
+  ),
+)
+```
+
+### App Bar Gradient (Dark)
+```dart
+Container(
+  decoration: BoxDecoration(
+    gradient: const LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [Color(0xFF1E1411), Color(0xFF4A2F25)],
+    ),
+  ),
+)
+```
+
+### Navigation Bar
+```dart
+DecoratedBox(
+  decoration: BoxDecoration(
+    color: const Color(0xFF251915).withValues(alpha: 0.94),
+    borderRadius: BorderRadius.circular(24),
+    border: Border.all(
+      color: const Color(0xFFC9953E).withValues(alpha: 0.25),
+    ),
+  ),
+)
+```
+
+## Design Tokens
+
+### Border Radius
+- **Cards**: 20px
+- **Buttons**: 14px
+- **Input fields**: 14px
+- **Navigation bar**: 24px
+- **Badges**: 999px (fully rounded)
+
+### Spacing
+- **Card padding**: 24px
+- **Input padding**: 14px horizontal, 14px vertical
+- **Navigation bar padding**: 14px (sides and bottom)
+- **Section gaps**: 8-14px
+
+### Elevation
+- **Cards**: 0 (use borders instead)
+- **AppBar**: 0 (flat)
+- **Buttons**: 0 (flat with solid backgrounds)
+- **Shadows**: Used sparingly for floating elements
+
+## Custom Components
+
+The theme is applied consistently, but some screens use custom decorations:
+
+### Glow Orbs (Setup Screen)
+```dart
+Container(
+  width: size,
+  height: size,
+  decoration: BoxDecoration(
+    shape: BoxShape.circle,
+    gradient: RadialGradient(
+      colors: [
+        color,
+        color.withValues(alpha: 0),
+      ],
+    ),
+  ),
+)
+```
+
+### Badge/Label
+```dart
+Container(
+  padding: const EdgeInsets.symmetric(
+    horizontal: 12,
+    vertical: 6,
+  ),
+  decoration: BoxDecoration(
+    color: const Color(0xFFC9953E).withValues(alpha: 0.2),
+    borderRadius: BorderRadius.circular(999),
+  ),
+  child: const Text(
+    'SETUP NECESARIO',
+    style: TextStyle(
+      fontWeight: FontWeight.w700,
+      fontSize: 12,
+      letterSpacing: 1.0,
+    ),
+  ),
+)
+```
+
+## Accessibility
+
+### Color Contrast
+All text colors meet WCAG AA standards:
+- **Ink on parchment**: High contrast (dark on light)
+- **Panel text**: Readable against panel backgrounds
+- **Button text**: Light on dark (forest green)
+
+### Interactive Elements
+- Minimum touch target: 48x48 dp (Material Design standard)
+- Clear focus states with brass borders
+- Icon buttons with sufficient padding
+
+## Dark Mode
+
+<Warning>
+Dark mode is not currently implemented. The theme uses `Brightness.light` only.
+</Warning>
+
+To add dark mode:
+1. Create a `_buildDarkTheme()` method
+2. Use darker background colors (browns, deep greens)
+3. Adjust text colors for dark backgrounds
+4. Set `ThemeMode.system` in MaterialApp
+
+## Best Practices
+
+<Check>Use theme colors instead of hardcoding</Check>
+```dart
+// Good
+Color.lerp(Theme.of(context).colorScheme.primary, Colors.white, 0.2)
+
+// Bad
+const Color(0xFF2C4432)
+```
+
+<Check>Access theme in widgets via `Theme.of(context)`</Check>
+```dart
+final theme = Theme.of(context);
+final primaryColor = theme.colorScheme.primary;
+```
+
+<Check>Use `ColorScheme` colors for consistency</Check>
+```dart
+container.decoration = BoxDecoration(
+  color: Theme.of(context).colorScheme.surface,
+  border: Border.all(
+    color: Theme.of(context).colorScheme.outline,
+  ),
+);
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Architecture" icon="sitemap" href="/development/architecture">
+    Learn about the app architecture
+  </Card>
+  <Card title="Project Structure" icon="folder-tree" href="/development/project-structure">
+    Explore the codebase organization
+  </Card>
+</CardGroup>

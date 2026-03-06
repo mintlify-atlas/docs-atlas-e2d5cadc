@@ -1,0 +1,482 @@
+---
+title: Service Layer
+description: Service APIs for business logic and data operations
+---
+
+LarpLand's service layer provides high-level APIs for working with products, events, orders, reviews, and user management.
+
+## ProductService
+
+**Source:** `lib/service/product.dart`
+
+### fetchProductList
+
+Retrieves all products from the database.
+
+```dart
+Future<List<Product>> fetchProductList()
+```
+
+**Returns:** List of all products ordered by ID
+
+---
+
+### addProduct
+
+Creates a new product with image upload.
+
+```dart
+Future<void> addProduct(
+  String name,
+  String descripcion,
+  String precio,
+  int stock,
+  String categoria,
+  XFile imagen,
+)
+```
+
+**Parameters:**
+- `name` - Product name
+- `descripcion` - Product description
+- `precio` - Product price (as string)
+- `stock` - Initial stock quantity
+- `categoria` - Product category
+- `imagen` - Image file to upload
+
+**Source:** `lib/service/product.dart:21`
+
+---
+
+### updateProduct
+
+Updates an existing product's details.
+
+```dart
+Future<void> updateProduct(
+  int id, {
+  String? name,
+  String? descripcion,
+  String? precio,
+  String? valoracionTotal,
+  int? stock,
+  String? categoria,
+  XFile? imagen,
+})
+```
+
+**Parameters:**
+- `id` - Product ID to update
+- `name` - New product name (optional)
+- `descripcion` - New description (optional)
+- `precio` - New price (optional)
+- `valoracionTotal` - New rating (optional)
+- `stock` - New stock quantity (optional)
+- `categoria` - New category (optional)
+- `imagen` - New image file (optional, deletes old image)
+
+**Source:** `lib/service/product.dart:48`
+
+---
+
+### deleteProduct
+
+Deletes a product and its associated image.
+
+```dart
+Future<void> deleteProduct(int id)
+```
+
+**Parameters:**
+- `id` - Product ID to delete
+
+**Source:** `lib/service/product.dart:90`
+
+---
+
+## RoleplayEventService
+
+**Source:** `lib/service/roleplay_event.dart`
+
+### fetchEventList
+
+Retrieves all events, optionally marking which ones a user is registered for.
+
+```dart
+Future<List<RoleplayEvent>> fetchEventList({int? userId})
+```
+
+**Parameters:**
+- `userId` - If provided, marks events with user's registration status
+
+**Returns:** List of all events ordered by ID
+
+**Source:** `lib/service/roleplay_event.dart:5`
+
+---
+
+### addEvent
+
+Creates a new roleplay event.
+
+```dart
+Future<RoleplayEvent> addEvent(
+  String name,
+  String description,
+  String fechaInicio,
+  String fechaFin,
+)
+```
+
+**Parameters:**
+- `name` - Event name
+- `description` - Event description
+- `fechaInicio` - Start date/time (ISO 8601)
+- `fechaFin` - End date/time (ISO 8601)
+
+**Returns:** The newly created event
+
+**Source:** `lib/service/roleplay_event.dart:26`
+
+---
+
+### updateEvent
+
+Updates an existing event's details.
+
+```dart
+Future<void> updateEvent(
+  int id, {
+  required String name,
+  required String description,
+  required String fechaInicio,
+  required String fechaFin,
+})
+```
+
+**Source:** `lib/service/roleplay_event.dart:47`
+
+---
+
+### deleteEvent
+
+Deletes an event and all associated registrations.
+
+```dart
+Future<void> deleteEvent(int id)
+```
+
+**Source:** `lib/service/roleplay_event.dart:65`
+
+---
+
+### fetchRegisteredEventIds
+
+Gets the IDs of events a user is registered for.
+
+```dart
+Future<Set<int>> fetchRegisteredEventIds(int userId)
+```
+
+**Returns:** Set of event IDs
+
+**Source:** `lib/service/roleplay_event.dart:78`
+
+---
+
+### fetchRegisteredEventsForUser
+
+Retrieves full event details for a user's registrations, sorted by start date.
+
+```dart
+Future<List<RoleplayEvent>> fetchRegisteredEventsForUser(int userId)
+```
+
+**Source:** `lib/service/roleplay_event.dart:89`
+
+---
+
+### registerUserInEvent
+
+Registers a user for an event.
+
+```dart
+Future<void> registerUserInEvent({
+  required int userId,
+  required int eventId,
+})
+```
+
+**Source:** `lib/service/roleplay_event.dart:103`
+
+---
+
+### cancelUserEventRegistration
+
+Cancels a user's event registration.
+
+```dart
+Future<void> cancelUserEventRegistration({
+  required int userId,
+  required int eventId,
+})
+```
+
+**Source:** `lib/service/roleplay_event.dart:118`
+
+---
+
+## OrderService
+
+**Source:** `lib/service/order.dart`
+
+### createUserOrder
+
+Creates a new order from shopping cart items.
+
+```dart
+Future<int> createUserOrder({
+  required int userId,
+  required List<Product> cartItems,
+  required double subtotalAmount,
+  required double shippingAmount,
+  required double totalAmount,
+  String status = 'completed',
+  String? paymentMethod,
+  String? deliveryMethod,
+  String? customerName,
+  String? customerPhone,
+  String? notes,
+  Map<String, dynamic>? shippingAddress,
+})
+```
+
+**Parameters:**
+- `userId` - ID of the user placing the order
+- `cartItems` - List of products in the cart
+- `subtotalAmount` - Subtotal before shipping
+- `shippingAmount` - Shipping cost
+- `totalAmount` - Total order amount
+- `status` - Order status (default: "completed")
+- `paymentMethod` - Payment method used (optional)
+- `deliveryMethod` - Delivery method (optional)
+- `customerName` - Customer name (optional)
+- `customerPhone` - Customer phone (optional)
+- `notes` - Order notes (optional)
+- `shippingAddress` - Shipping address details (optional)
+
+**Returns:** The newly created order ID
+
+**Throws:** `AppError` if cart is empty
+
+**Source:** `lib/service/order.dart:10`
+
+---
+
+### fetchUserOrders
+
+Retrieves all orders for a specific user, sorted by creation date (newest first).
+
+```dart
+Future<List<UserOrder>> fetchUserOrders(int userId)
+```
+
+**Source:** `lib/service/order.dart:80`
+
+---
+
+### fetchAllOrders
+
+Retrieves all orders in the system, sorted by creation date (newest first).
+
+```dart
+Future<List<UserOrder>> fetchAllOrders()
+```
+
+**Source:** `lib/service/order.dart:101`
+
+---
+
+### updateOrderStatus
+
+Updates an order's status.
+
+```dart
+Future<void> updateOrderStatus({
+  required int orderId,
+  required String status,
+})
+```
+
+**Source:** `lib/service/order.dart:118`
+
+---
+
+## UserReviewService
+
+**Source:** `lib/service/user_review.dart`
+
+### fetchProductReviews
+
+Retrieves all product reviews in the system.
+
+```dart
+Future<List<ProductReviews>> fetchProductReviews()
+```
+
+**Returns:** List of all reviews
+
+**Source:** `lib/service/user_review.dart:5`
+
+---
+
+### addProductReview
+
+Creates a new product review.
+
+```dart
+Future<void> addProductReview(
+  int userId,
+  int productId,
+  String comment,
+  int rating,
+)
+```
+
+**Parameters:**
+- `userId` - ID of the user writing the review
+- `productId` - ID of the product being reviewed
+- `comment` - Review text
+- `rating` - Star rating
+
+**Source:** `lib/service/user_review.dart:11`
+
+---
+
+### fetchProductReviewsById
+
+Retrieves reviews for a specific product, sorted by creation date (newest first).
+
+```dart
+Future<List<ProductReviews>> fetchProductReviewsById(int productId)
+```
+
+**Source:** `lib/service/user_review.dart:30`
+
+---
+
+## LoginService
+
+**Source:** `lib/service/login.dart`
+
+### login
+
+Authenticates a user with email and password.
+
+```dart
+Future<Login> login(String email, String password)
+```
+
+**Parameters:**
+- `email` - User's email address
+- `password` - User's password
+
+**Returns:** Login response with user details and token
+
+**Throws:** `AppError` on authentication failure
+
+**Source:** `lib/service/login.dart:7`
+
+<Note>
+This method also binds the authentication session using `AuthSession.bind()`.
+</Note>
+
+---
+
+## RegisterService
+
+**Source:** `lib/service/register.dart`
+
+### register
+
+Registers a new user account.
+
+```dart
+Future<User> register(String name, String email, String password)
+```
+
+**Parameters:**
+- `name` - User's display name
+- `email` - User's email address
+- `password` - User's password
+
+**Returns:** The newly created User
+
+**Throws:** `AppError` on registration failure (e.g., email already exists)
+
+**Source:** `lib/service/register.dart:6`
+
+<Note>
+This method signs out automatically after creating the account to prevent unwanted auto-login.
+</Note>
+
+---
+
+## UserService
+
+**Source:** `lib/service/user.dart`
+
+### fetchUserList
+
+Retrieves all users in the system.
+
+```dart
+Future<List<User>> fetchUserList()
+```
+
+**Returns:** List of all users ordered by ID
+
+**Source:** `lib/service/user.dart:8`
+
+---
+
+### showUser
+
+Retrieves a specific user by ID.
+
+```dart
+Future<User> showUser(int id)
+```
+
+**Throws:** `AppError` if user not found
+
+**Source:** `lib/service/user.dart:17`
+
+---
+
+### updateCurrentUserProfile
+
+Updates the currently logged-in user's profile.
+
+```dart
+Future<User> updateCurrentUserProfile({
+  required int userId,
+  required String name,
+  required String email,
+})
+```
+
+**Parameters:**
+- `userId` - Current user's ID
+- `name` - New display name
+- `email` - New email address
+
+**Returns:** Updated User object
+
+**Throws:** `AppError` if validation fails or no active session
+
+**Source:** `lib/service/user.dart:23`
+
+<Warning>
+Changing email triggers email verification. The user will need to verify the new email before it becomes active.
+</Warning>

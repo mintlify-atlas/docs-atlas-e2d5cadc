@@ -1,0 +1,345 @@
+---
+title: Order Management
+description: How to view and manage customer orders in the LarpLand admin panel
+---
+
+The order management section allows you to view all customer orders, update order statuses, and track order details including items and totals.
+
+## Viewing Orders
+
+The orders panel displays all orders in an expandable list format:
+
+- Order ID and creation date
+- User ID of the customer
+- Total amount and item count
+- Current order status
+- Expandable details showing order items
+
+### Order Card Layout
+
+```dart
+// Order card structure from orders_list.dart:192-260
+ExpansionTile(
+  title: Text('Pedido #${order.id}'),
+  subtitle: Text(
+    'Usuario #${order.userId} - ${_formatDate(order.createdAt)} - ${order.totalAmount.toStringAsFixed(2)} EUR'
+  ),
+  leading: const Icon(Icons.receipt_long_outlined),
+  trailing: Row(
+    children: [
+      _StatusBadge(status: order.status),
+      PopupMenuButton(...),
+    ],
+  ),
+  children: [
+    // Order items and metadata
+  ],
+)
+```
+
+## Order Status
+
+Orders can have three different statuses:
+
+<CardGroup cols={3}>
+  <Card title="Pending" icon="clock">
+    Orders awaiting processing
+    
+    Color: Yellow
+    
+    Spanish: "Pendiente"
+  </Card>
+  
+  <Card title="Completed" icon="check-circle">
+    Orders that have been fulfilled
+    
+    Color: Green
+    
+    Spanish: "Completado"
+  </Card>
+  
+  <Card title="Cancelled" icon="xmark-circle">
+    Orders that were cancelled
+    
+    Color: Red
+    
+    Spanish: "Cancelado"
+  </Card>
+</CardGroup>
+
+### Status Badge Implementation
+
+```dart
+// Status badge logic from orders_list.dart:313-339
+class _StatusBadge extends StatelessWidget {
+  final String status;
+  
+  Widget build(BuildContext context) {
+    final normalized = status.trim().toLowerCase();
+    final (label, bg, fg) = switch (normalized) {
+      'completed' => ('Completado', const Color(0xFFE8F5E9), const Color(0xFF2E7D32)),
+      'pending' => ('Pendiente', const Color(0xFFFFF8E1), const Color(0xFFF9A825)),
+      'cancelled' => ('Cancelado', const Color(0xFFFFEBEE), const Color(0xFFC62828)),
+      _ => (status, const Color(0xFFF3EBD4), const Color(0xFF2C4432)),
+    };
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(label, style: TextStyle(color: fg)),
+    );
+  }
+}
+```
+
+## Updating Order Status
+
+To change an order's status:
+
+<Steps>
+  <Step title="Open Status Menu">
+    Click the three-dot menu button on the right side of the order card.
+  </Step>
+  
+  <Step title="Select New Status">
+    Choose from the available status options:
+    - **Pendiente** (Pending)
+    - **Completado** (Completed)
+    - **Cancelado** (Cancelled)
+  </Step>
+  
+  <Step title="Confirm Update">
+    The status updates immediately and a confirmation message appears.
+  </Step>
+</Steps>
+
+### Status Update Implementation
+
+```dart
+// Status update logic from orders_list.dart:39-56
+Future<void> _changeStatus(UserOrder order, String nextStatus) async {
+  if (order.status == nextStatus) return;
+  try {
+    await updateOrderStatus(orderId: order.id, status: nextStatus);
+    if (!mounted) return;
+    setState(() {
+      _ordersFuture = fetchAllOrders();
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Pedido #${order.id} actualizado a $nextStatus')),
+    );
+  } catch (e) {
+    // Error handling...
+  }
+}
+```
+
+## Order Details
+
+Expand an order card to view detailed information:
+
+### Order Metadata
+
+Each order displays:
+
+- **Total Items**: Number of products in the order
+- **Total Amount**: Order total in EUR
+
+```dart
+// Metadata chips from orders_list.dart:234-245
+Row(
+  children: [
+    _MetaChip(
+      icon: Icons.shopping_bag_outlined,
+      text: '${order.totalItems} item(s)',
+    ),
+    _MetaChip(
+      icon: Icons.payments_outlined,
+      text: '${order.totalAmount.toStringAsFixed(2)} EUR',
+    ),
+  ],
+)
+```
+
+### Order Items
+
+Each order item shows:
+
+- Product name
+- Quantity
+- Unit price
+
+```dart
+// Order item display from orders_list.dart:275-310
+class _OrderItemMiniRow extends StatelessWidget {
+  final UserOrderItem item;
+  
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              item.productName,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+          Text('${item.quantity} x ${item.unitPrice} EUR'),
+        ],
+      ),
+    );
+  }
+}
+```
+
+## Filtering Orders
+
+The order management panel includes comprehensive filtering options:
+
+<Steps>
+  <Step title="Search by ID or User">
+    Use the search bar to find orders by:
+    - Order ID (with or without # prefix)
+    - User ID
+  </Step>
+  
+  <Step title="Filter by Status">
+    Select a status filter:
+    - **Todos**: All orders
+    - **Pendiente**: Pending orders only
+    - **Completado**: Completed orders only
+    - **Cancelado**: Cancelled orders only
+  </Step>
+  
+  <Step title="Filter by Date">
+    Select a date range:
+    - **Todo**: All dates
+    - **Hoy**: Orders from today
+    - **7 dias**: Orders from the last 7 days
+    - **30 dias**: Orders from the last 30 days
+  </Step>
+</Steps>
+
+### Filter Implementation
+
+```dart
+// Filter logic from orders_list.dart:135-157
+List<UserOrder> _applyFilters(List<UserOrder> orders) {
+  final query = _searchController.text.trim().toLowerCase();
+  final now = DateTime.now();
+
+  return orders.where((order) {
+    final matchesStatus = _statusFilter == 'all'
+        ? true
+        : order.status.trim().toLowerCase() == _statusFilter;
+
+    final matchesDate = switch (_dateFilter) {
+      _DateFilter.all => true,
+      _DateFilter.today => _isSameDay(order.createdAt, now),
+      _DateFilter.last7Days => _isWithinLastDays(order.createdAt, now, 7),
+      _DateFilter.last30Days => _isWithinLastDays(order.createdAt, now, 30),
+    };
+
+    final matchesQuery = query.isEmpty
+        ? true
+        : _matchesSearch(order, query);
+
+    return matchesStatus && matchesDate && matchesQuery;
+  }).toList();
+}
+```
+
+## Date Formatting
+
+Order dates are formatted for easy reading:
+
+```dart
+// Date formatting from orders_list.dart:263-272
+static String _formatDate(DateTime? value) {
+  if (value == null) return 'Fecha no disponible';
+  final v = value.toLocal();
+  final d = v.day.toString().padLeft(2, '0');
+  final m = v.month.toString().padLeft(2, '0');
+  final y = v.year.toString().padLeft(4, '0');
+  final hh = v.hour.toString().padLeft(2, '0');
+  final mm = v.minute.toString().padLeft(2, '0');
+  return '$d/$m/$y $hh:$mm';
+}
+```
+
+Example output: `06/03/2026 14:30`
+
+## Refreshing Order List
+
+Keep the order list up to date:
+
+- Pull down on the list to refresh (on touch devices)
+- The list automatically refreshes after updating an order status
+
+## Order List Features
+
+### Empty State
+
+When no orders match the current filters:
+
+```dart
+// From orders_list.dart:375-392
+class _EmptyFilteredOrders extends StatelessWidget {
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.only(top: 24),
+      child: Center(
+        child: Text(
+          'No hay pedidos con esos filtros',
+          style: TextStyle(
+            color: Color(0xFF2C4432),
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+  }
+}
+```
+
+### Error Handling
+
+If orders fail to load:
+
+- An error message is displayed
+- A retry button allows you to attempt loading again
+- Error details are shown to help diagnose issues
+
+## Order Workflow
+
+Typical order processing workflow:
+
+<Steps>
+  <Step title="New Order Created">
+    Order appears with "Pendiente" (Pending) status
+  </Step>
+  
+  <Step title="Process Order">
+    Review order details by expanding the order card
+  </Step>
+  
+  <Step title="Fulfill Order">
+    After fulfillment, update status to "Completado" (Completed)
+  </Step>
+  
+  <Step title="Handle Cancellations">
+    If needed, update status to "Cancelado" (Cancelled)
+  </Step>
+</Steps>
+
+<Tip>
+Use the date filter set to "Hoy" (Today) to focus on orders that need immediate attention. This helps prioritize daily order processing.
+</Tip>
+
+<Note>
+Order status changes are immediate and update the database. Make sure you're updating the correct order before confirming the status change.
+</Note>

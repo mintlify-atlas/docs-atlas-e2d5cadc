@@ -1,0 +1,185 @@
+---
+title: Shopping Cart & Checkout
+description: Complete your purchases in LarpLand
+---
+
+LarpLand provides a streamlined shopping cart and checkout experience for purchasing roleplay items and equipment.
+
+## Viewing Your Cart
+
+Access your shopping cart at any time:
+
+- Tap the shopping cart icon in the top-right corner of the catalog screen
+- The icon shows a badge with your total item count
+- The icon changes from outlined to filled when you have items in your cart
+
+### Empty Cart State
+
+If your cart is empty, you'll see:
+
+- A message: "Tu carrito esta vacio"
+- Helpful text prompting you to browse the catalog
+- A "Volver al catalogo" button to return to shopping
+
+## Managing Cart Contents
+
+Each item in your cart is displayed with:
+
+- **Product thumbnail**: 76x76px image
+- **Product name**: Truncated to 1 line if too long
+- **Unit price**: Price per individual item
+- **Line total**: Unit price × quantity
+- **Quantity controls**: Adjust the number of items
+
+### Adjusting Quantities
+
+<Steps>
+  <Step title="Decrease quantity">
+    Tap the minus (−) button to reduce quantity by 1
+  </Step>
+  <Step title="View current quantity">
+    The current quantity is displayed in a badge between the buttons
+  </Step>
+  <Step title="Increase quantity">
+    Tap the plus (+) button to add one more of the item
+  </Step>
+</Steps>
+
+<Warning>
+  You cannot add more items than are available in stock. If you attempt to exceed stock limits, an error message will appear.
+</Warning>
+
+### Removing Items
+
+To remove items from your cart:
+
+- **Remove one**: Tap the minus button until quantity reaches zero
+- **Clear entire cart**: Tap "Vaciar" in the top-right corner to empty your cart completely
+
+## Cart Summary
+
+At the bottom of the cart screen, you'll see:
+
+- **Total amount**: Sum of all line totals in euros (€)
+- **Checkout button**: "Continuar al checkout" to proceed with your purchase
+
+The total updates automatically as you adjust quantities.
+
+## Checkout Process
+
+When you're ready to complete your purchase:
+
+<Steps>
+  <Step title="Review your order">
+    The checkout screen displays all items with thumbnails, quantities, and prices
+  </Step>
+  <Step title="Enter contact information">
+    Provide:
+    - Full name (required)
+    - Phone number (required, minimum 7 digits)
+  </Step>
+  <Step title="Select delivery method">
+    Choose from three options:
+    - **Standard shipping**: 48-72 hours (€4.99, free over €80)
+    - **Express shipping**: 24 hours (€9.99)
+    - **Store pickup**: No shipping cost
+  </Step>
+  <Step title="Enter shipping address">
+    If you selected shipping (not pickup), provide:
+    - Street address (required)
+    - Apartment/floor (optional)
+    - City (required)
+    - Postal code (required, minimum 4 digits)
+  </Step>
+  <Step title="Choose payment method">
+    Select your preferred payment option:
+    - **Credit card**: Immediate payment (simulated)
+    - **Bizum**: Instant confirmation (simulated)
+    - **Cash on delivery**: Pay when you receive your order
+  </Step>
+  <Step title="Add order notes">
+    Optionally include delivery instructions or special requests
+  </Step>
+  <Step title="Review totals">
+    The footer displays:
+    - Subtotal
+    - Shipping cost
+    - Grand total
+  </Step>
+  <Step title="Confirm purchase">
+    Tap "Confirmar compra" to complete your order
+  </Step>
+</Steps>
+
+### Store Pickup Option
+
+If you select store pickup:
+
+- No shipping address is required
+- An information banner explains: "Recibiras una confirmacion cuando tu pedido este listo"
+- Pickup location is automatically set to "Tienda LarpLand"
+
+## Order Confirmation
+
+After successful checkout:
+
+1. Product stock levels are automatically updated
+2. Your order is saved with a unique order ID
+3. A confirmation dialog appears with your order number
+4. Your cart is cleared automatically
+5. You return to the catalog
+
+<Note>
+  Order status is set to "pending" for cash on delivery and "completed" for other payment methods.
+</Note>
+
+## Shipping Costs
+
+Shipping is calculated based on your delivery method and subtotal:
+
+| Delivery Method | Cost | Details |
+|----------------|------|----------|
+| Standard | €4.99 | Free for orders over €80 |
+| Express | €9.99 | Always €9.99 |
+| Pickup | €0.00 | No shipping charge |
+
+## Error Handling
+
+### Insufficient Stock
+
+If a product's stock becomes insufficient during checkout:
+
+- The system checks stock availability before processing
+- An error message identifies the specific product
+- Stock changes are rolled back
+- You can adjust your cart and try again
+
+### Validation Errors
+
+The checkout form validates:
+
+- Required fields are filled
+- Phone number has at least 7 digits
+- Postal code has at least 4 digits
+- Shipping address fields are complete (when applicable)
+
+Missing or invalid fields are highlighted with error messages.
+
+## Processing State
+
+While your order is being processed:
+
+- The "Confirmar compra" button shows a loading spinner
+- The button is disabled to prevent duplicate submissions
+- Button text changes to "Procesando..."
+
+This typically takes just a few seconds.
+
+## Cart Persistence
+
+Your cart is maintained in memory using a state provider:
+
+- Items persist as you navigate between screens
+- Returning from product detail pages preserves your cart
+- Your cart is cleared after successful checkout
+- Cart data is lost if you close the app (not persisted to storage)

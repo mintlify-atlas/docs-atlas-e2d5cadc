@@ -1,0 +1,186 @@
+---
+title: Events
+description: Discover and register for LarpLand roleplay events
+---
+
+LarpLand offers an event system where you can browse upcoming roleplay campaigns, register for events, and receive notifications.
+
+## Accessing Events
+
+The events page is available from the main navigation:
+
+1. Tap the "Eventos" tab in the bottom navigation bar
+2. The section is labeled "Calendario de campanas" in the app header
+3. The events list loads automatically when you open this tab
+
+## Browsing Events
+
+Events are displayed in a scrollable list, with each event card showing:
+
+- **Event icon**: Visual indicator in a decorative badge
+- **Event name**: Bold title, up to 2 lines
+- **Description**: Brief overview of the event, truncated to 2 lines
+- **Start date and time**: When the event begins
+- **End date and time**: When the event concludes
+- **Registration button**: Shows your current registration status
+
+### Event Card Layout
+
+Each event appears in a card with a parchment-style design:
+
+- Light background color (#FFFAF0) for a fantasy aesthetic
+- Rounded corners with subtle border
+- Icon badge in the top-left
+- Date chips displaying start and end times
+- Action button aligned to the right
+
+### Date and Time Format
+
+Event dates are displayed in DD/MM/YYYY HH:MM format:
+
+- Example: "06/03/2026 18:00"
+- Start and end times are clearly labeled
+- Times include both date and hour/minute precision
+
+## Event Registration
+
+To register for an event:
+
+<Steps>
+  <Step title="Browse available events">
+    Scroll through the events list to find one that interests you
+  </Step>
+  <Step title="Review event details">
+    Read the event name, description, and scheduled dates
+  </Step>
+  <Step title="Tap 'Inscribirse'">
+    Click the registration button on the event card
+  </Step>
+  <Step title="Confirmation">
+    A success message confirms your registration: "Inscripcion realizada"
+  </Step>
+</Steps>
+
+### Registration Status
+
+The registration button indicates your current status:
+
+- **Not registered**: Button shows "Inscribirse" with an outlined icon
+- **Already registered**: Button shows "Inscrito" with a verified checkmark icon
+- Button style: Dark green background (#2C4432) with white text
+
+<Note>
+  If you try to register for an event you're already enrolled in, you'll see a message: "Ya estas inscrito en este evento"
+</Note>
+
+## Event Notifications
+
+LarpLand automatically schedules notifications for registered events:
+
+### How Notifications Work
+
+1. **Upon registration**: The app calculates when to send a reminder
+2. **24-hour advance notice**: Notifications are sent 24 hours before the event starts
+3. **Automatic scheduling**: The system uses timers to trigger notifications at the right time
+4. **Immediate notification**: If an event starts within 24 hours, you receive a notification right away
+
+### Notification Content
+
+Event notifications display:
+
+- **Title**: The event name
+- **Body**: Start date in the format "Comienza el [date]"
+- **Channel**: High-priority notifications for visibility
+
+### Notification Permissions
+
+When you first use the events feature:
+
+1. The app requests notification permissions (Android)
+2. You need to grant permission to receive event reminders
+3. Notifications work in the background even when the app is closed
+
+<Warning>
+  If you deny notification permissions, you won't receive event reminders. Check your device settings to enable notifications for LarpLand.
+</Warning>
+
+## Event List Updates
+
+The events list refreshes automatically:
+
+- **Tab navigation**: Switching to the Events tab refreshes the list
+- **User context**: Events are loaded for your specific user account
+- **Registration sync**: Your registration status updates immediately after enrolling
+
+### Loading States
+
+While events are loading:
+
+- A circular progress indicator appears in the center of the screen
+- This typically takes just a moment
+
+### Error Handling
+
+If events fail to load:
+
+- An error message displays with details about the problem
+- Check your internet connection
+- Try navigating away and back to the Events tab to retry
+
+## Event List Management
+
+The events system includes intelligent notification management:
+
+### Preventing Duplicate Notifications
+
+- Each event can only trigger one notification per user
+- The app tracks which events have already sent notifications
+- Re-registering or refreshing won't create duplicate reminders
+
+### Timer Lifecycle
+
+- Notification timers are active while the Events tab is visible
+- Timers are cancelled when you navigate away
+- New timers are created when you return to the Events tab
+- This prevents memory leaks and ensures efficient resource usage
+
+## User Journey
+
+Typical event interaction flow:
+
+<Steps>
+  <Step title="Discover">
+    Browse the events list to find campaigns that interest you
+  </Step>
+  <Step title="Register">
+    Enroll in one or more events by tapping the registration button
+  </Step>
+  <Step title="Get notified">
+    Receive an automatic reminder 24 hours before the event
+  </Step>
+  <Step title="Attend">
+    Show up at the event location at the scheduled time
+  </Step>
+</Steps>
+
+## Viewing Your Registered Events
+
+To see which events you're enrolled in:
+
+- Events you've registered for show the "Inscrito" status with a verified icon
+- The registration button color and icon change to indicate enrollment
+- All registered events remain visible in the main events list
+
+<Note>
+  There is no separate "My Events" filter at this time. All events appear in the main list with registration status clearly indicated.
+</Note>
+
+## Event Capacity
+
+The current event system does not display:
+
+- Maximum participant limits
+- Current enrollment counts
+- Waitlist functionality
+
+Events remain available for registration regardless of how many users have enrolled.

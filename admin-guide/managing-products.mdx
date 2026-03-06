@@ -1,0 +1,206 @@
+---
+title: Managing Products
+description: How to manage product inventory in the LarpLand admin panel
+---
+
+The product management section allows you to maintain your LARP store inventory, including adding new products, editing existing ones, and tracking stock levels.
+
+## Viewing Product Inventory
+
+The product list displays all available products in a responsive grid layout:
+
+- **Grid Layout**: Displays 2-4 columns depending on screen width
+- **Product Cards**: Show product image, name, category, and current stock
+- **Stock Indicators**: Color-coded badges showing stock status:
+  - Green: Stock > 10
+  - Orange: Stock between 3-10
+  - Red: Stock ≤ 3
+
+### Filtering Products
+
+The product list includes powerful filtering options:
+
+<Steps>
+  <Step title="Search Bar">
+    Search by product name, category, or ID. The search is case-insensitive and updates in real-time as you type.
+  </Step>
+  
+  <Step title="Stock Filter">
+    Filter products by stock status:
+    - **Todo**: Show all products
+    - **Con stock**: Only products with stock > 0
+    - **Stock bajo**: Products with 1-5 items
+    - **Sin stock**: Out of stock products (stock ≤ 0)
+  </Step>
+  
+  <Step title="Category Filter">
+    Filter by product category. Categories are dynamically generated from your product catalog.
+  </Step>
+</Steps>
+
+```dart
+// Stock filter logic from product_list.dart:98-103
+final matchesStock = switch (_stockFilter) {
+  _ProductStockFilter.all => true,
+  _ProductStockFilter.inStock => product.cantidad > 0,
+  _ProductStockFilter.lowStock => product.cantidad > 0 && product.cantidad <= 5,
+  _ProductStockFilter.outOfStock => product.cantidad <= 0,
+};
+```
+
+## Adding New Products
+
+To add a product to your inventory:
+
+<Steps>
+  <Step title="Click the Add Button">
+    Tap the floating action button (+ icon) in the bottom-right corner to open the product registration form.
+  </Step>
+  
+  <Step title="Fill Product Details">
+    Complete all required fields:
+    - **Nombre**: Product name
+    - **Descripcion**: Detailed description (multiline)
+    - **Precio**: Price in EUR
+    - **Stock**: Initial stock quantity
+    - **Categoria**: Select from predefined categories (Armas, Armaduras, Accesorios, Consumibles)
+  </Step>
+  
+  <Step title="Upload Product Image">
+    Click "Seleccionar imagen" to choose an image from your device. The image is required for new products.
+  </Step>
+  
+  <Step title="Submit the Form">
+    Click "Agregar producto" to save. The product will be uploaded to Firebase Storage and added to the database.
+  </Step>
+</Steps>
+
+### Product Categories
+
+The system includes four default categories:
+
+```dart
+// From product_register.dart:21-26
+static const List<String> _defaultCategories = <String>[
+  'Armas',
+  'Armaduras',
+  'Accesorios',
+  'Consumibles',
+];
+```
+
+## Editing Existing Products
+
+To modify a product:
+
+<Steps>
+  <Step title="Open Product Menu">
+    Click the three-dot menu on any product card to see available actions.
+  </Step>
+  
+  <Step title="Select Edit">
+    Choose "Editar" from the menu to open the product editor.
+  </Step>
+  
+  <Step title="Update Fields">
+    Modify any field including name, description, price, stock, or category. The current image is displayed, and you can optionally upload a new one.
+  </Step>
+  
+  <Step title="Save Changes">
+    Click "Actualizar producto" to save your changes.
+  </Step>
+</Steps>
+
+### Update Logic
+
+```dart
+// From product_register.dart:145-153
+await updateProduct(
+  widget.product!.id,
+  name: nameController.text,
+  descripcion: descriptionController.text,
+  precio: priceController.text,
+  stock: int.parse(stockController.text),
+  categoria: _selectedCategory!,
+  imagen: image,
+);
+```
+
+## Image Upload via Firebase Storage
+
+Product images are handled through Firebase Storage:
+
+<Steps>
+  <Step title="Image Selection">
+    Uses `ImagePicker` to select images from the device gallery.
+  </Step>
+  
+  <Step title="Preview">
+    Selected images are displayed as a preview before upload.
+  </Step>
+  
+  <Step title="Upload on Save">
+    Images are uploaded to Firebase Storage when the product form is submitted.
+  </Step>
+</Steps>
+
+```dart
+// Image picker implementation from product_register.dart:79-93
+Future<void> _pickImage() async {
+  final picker = ImagePicker();
+  final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+  if (pickedFile != null) {
+    setState(() {
+      image = pickedFile;
+      imageBytes = null;
+    });
+    final bytes = await pickedFile.readAsBytes();
+    if (!mounted) return;
+    setState(() {
+      imageBytes = bytes;
+    });
+  }
+}
+```
+
+## Deleting Products
+
+To remove a product from inventory:
+
+<Steps>
+  <Step title="Open Product Menu">
+    Click the three-dot menu on the product card.
+  </Step>
+  
+  <Step title="Select Delete">
+    Choose "Borrar" (shown in red) from the menu.
+  </Step>
+  
+  <Step title="Confirm Deletion">
+    Confirm the deletion in the dialog that appears. This action cannot be undone.
+  </Step>
+</Steps>
+
+<Warning>
+Deleting a product is permanent and cannot be undone. Make sure you want to remove the product before confirming.
+</Warning>
+
+## Product List Pagination
+
+The product list uses pagination to improve performance:
+
+- Initial load shows 12 products
+- Click "Cargar mas" to load additional products
+- Shows remaining product count
+
+## Refreshing the Product List
+
+Refresh the product list to see the latest changes:
+
+- Use the refresh button in the top-right corner
+- Pull down on the list (on touch devices)
+- The list automatically refreshes after adding, editing, or deleting products
+
+<Tip>
+Use the stock filter to quickly identify products that need restocking. Products with low stock are highlighted in orange or red.
+</Tip>

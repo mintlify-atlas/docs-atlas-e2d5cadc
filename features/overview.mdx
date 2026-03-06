@@ -1,0 +1,80 @@
+---
+title: Features Overview
+description: Comprehensive overview of LarpLand's core features and capabilities
+---
+
+LarpLand is a comprehensive Flutter application for LARP (Live Action Role-Playing) enthusiasts, featuring e-commerce, event management, and role-based access control.
+
+## Core Features
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="lock" href="/features/authentication">
+    Firebase-based user authentication with email/password and session management
+  </Card>
+  
+  <Card title="Product Catalog" icon="store" href="/features/product-catalog">
+    Browse and search LARP equipment, costumes, and accessories with reviews
+  </Card>
+  
+  <Card title="Shopping Cart" icon="cart-shopping" href="/features/shopping-cart">
+    Full-featured cart with checkout, order management, and state persistence
+  </Card>
+  
+  <Card title="LARP Events" icon="calendar-star" href="/features/events">
+    Discover and register for roleplay events with notification support
+  </Card>
+  
+  <Card title="User Roles" icon="users" href="/features/user-roles">
+    Role-based access control with User (rol=0) and Admin (rol=1) permissions
+  </Card>
+</CardGroup>
+
+## Technology Stack
+
+- **Frontend**: Flutter with Provider state management
+- **Backend**: Firebase (Auth, Firestore, Storage)
+- **Authentication**: Firebase Authentication
+- **Database**: Cloud Firestore with numeric ID system
+- **Storage**: Firebase Storage for product images
+
+## Architecture Highlights
+
+### Firebase Backend Integration
+
+All features leverage the centralized `FirebaseBackend` service which provides:
+
+- Singleton access to Firebase services (Auth, Firestore, Storage)
+- Numeric ID generation with atomic counters
+- Timestamp normalization for consistent date handling
+- Centralized error handling and messaging
+
+### State Management
+
+The application uses Flutter Provider for state management, particularly in the shopping cart feature with `CartProvider`.
+
+### Session Management
+
+User sessions are managed through the `AuthSession` class which maintains:
+
+- Firebase ID token
+- User ID (numeric)
+- User role (0 = User, 1 = Admin)
+- Firebase UID
+
+## Collections in Firestore
+
+The application uses the following Firestore collections:
+
+| Collection | Purpose | Key Fields |
+|------------|---------|------------|
+| `users` | User profiles | `id`, `name`, `email`, `rol`, `firebase_uid` |
+| `products` | Product catalog | `id`, `nombre`, `descripcion`, `precio`, `cantidad`, `imagen` |
+| `events` | LARP events | `id`, `nombre`, `descripcion`, `fecha_inicio`, `fecha_fin` |
+| `event_registrations` | Event registrations | `user_id`, `event_id` |
+| `orders` | Purchase orders | `id`, `user_id`, `items`, `total_amount`, `status` |
+| `reviews` | Product reviews | `product_id`, `user_id`, `rating`, `comment` |
+| `_meta` | System counters | Auto-incrementing ID counters |
+
+## Next Steps
+
+Explore each feature in detail using the cards above, or dive into the [API Reference](/api/models) for implementation details.

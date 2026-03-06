@@ -1,0 +1,297 @@
+---
+title: Project Structure
+description: Understand the code organization and file structure of LarpLand
+---
+
+LarpLand follows a feature-based organization pattern with clear separation between UI, business logic, and data layers.
+
+## Directory Structure
+
+```
+lib/
+├── component/          # Reusable UI components
+│   ├── event_card.dart
+│   ├── review_card.dart
+│   └── smart_network_image.dart
+├── model/              # Data models and DTOs
+│   ├── login.dart
+│   ├── order.dart
+│   ├── product.dart
+│   ├── roleplay_event.dart
+│   ├── user.dart
+│   └── user_review.dart
+├── provider/           # State management providers
+│   └── cart_provider.dart
+├── service/            # Business logic and API services
+│   ├── api_config.dart
+│   ├── app_error.dart
+│   ├── auth_session.dart
+│   ├── firebase_backend.dart
+│   ├── login.dart
+│   ├── order.dart
+│   ├── product.dart
+│   ├── register.dart
+│   ├── roleplay_event.dart
+│   ├── user.dart
+│   └── user_review.dart
+├── util/               # Utility functions and helpers
+│   └── error_message.dart
+├── view/               # UI screens and pages
+│   ├── admin/         # Admin-specific screens
+│   │   ├── adminhome.dart
+│   │   ├── event_list.dart
+│   │   ├── event_register.dart
+│   │   ├── orders_list.dart
+│   │   ├── product_list.dart
+│   │   ├── product_register.dart
+│   │   └── users_list.dart
+│   ├── cart/          # Shopping cart screens
+│   │   ├── cart.dart
+│   │   └── checkout.dart
+│   ├── home/          # Main user screens
+│   │   ├── catalog.dart
+│   │   ├── event_list.dart
+│   │   ├── home_screen.dart
+│   │   ├── orders_history.dart
+│   │   ├── profile.dart
+│   │   └── registered_events.dart
+│   ├── login/
+│   │   └── login.dart
+│   ├── product_detail/
+│   │   └── product_detail.dart
+│   └── register/
+│       └── register.dart
+├── firebase_options.dart  # Firebase configuration
+└── main.dart             # Application entry point
+```
+
+## Layer Responsibilities
+
+### View Layer (`lib/view/`)
+
+Contains all Flutter widget screens and UI components. Organized by feature:
+
+- **admin/**: Administrative interfaces for managing products, events, orders, and users
+- **cart/**: Shopping cart and checkout flows
+- **home/**: Main user-facing screens (catalog, events, profile)
+- **login/**: Authentication screens
+- **product_detail/**: Product details and reviews
+- **register/**: User registration
+
+### Component Layer (`lib/component/`)
+
+Reusable UI widgets shared across multiple screens:
+
+- `event_card.dart`: Display event information in a card format
+- `review_card.dart`: Show user reviews and ratings
+- `smart_network_image.dart`: Optimized image loading with caching
+
+### Model Layer (`lib/model/`)
+
+Data transfer objects (DTOs) representing business entities:
+
+```dart
+// From lib/model/product.dart
+class Product {
+  final int id;
+  final String nombre;
+  final String descripcion;
+  final String precio;
+  final String imagen;
+  final int cantidad;
+  final String valoracionTotal;
+  final String categoria;
+  int cantidadCarrito;
+
+  Product({
+    required this.id,
+    required this.nombre,
+    required this.descripcion,
+    required this.precio,
+    required this.imagen,
+    required this.cantidad,
+    required this.valoracionTotal,
+    required this.categoria,
+    this.cantidadCarrito = 1,
+  });
+
+  factory Product.fromJson(Map<String, dynamic> json) {
+    // JSON deserialization logic
+  }
+}
+```
+
+All models include:
+- Immutable fields (marked as `final`)
+- Type-safe constructors
+- `fromJson` factory methods for deserialization
+- Validation and error handling
+
+### Service Layer (`lib/service/`)
+
+Business logic and Firebase interactions:
+
+- `firebase_backend.dart`: Core Firebase service wrapper
+- `auth_session.dart`: Session and authentication state
+- `product.dart`, `order.dart`, `user.dart`: Domain-specific services
+- `app_error.dart`: Custom error types
+
+Services handle:
+- Firebase queries and mutations
+- Data transformation and validation
+- Error handling and reporting
+
+### Provider Layer (`lib/provider/`)
+
+State management using the Provider pattern:
+
+- `cart_provider.dart`: Shopping cart state management
+
+Providers extend `ChangeNotifier` and use `notifyListeners()` to update UI.
+
+### Util Layer (`lib/util/`)
+
+Utility functions and helpers:
+
+- `error_message.dart`: User-friendly error message formatting
+
+## Key Files
+
+### `main.dart`
+
+Application entry point that:
+
+1. Initializes Flutter framework
+2. Configures Firebase
+3. Syncs authentication state
+4. Sets up Provider for state management
+5. Defines Material theme
+6. Launches root widget
+
+```dart
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  var firebaseReady = false;
+  if (DefaultFirebaseOptions.isConfigured) {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    await AuthSession.syncFromFirebase();
+    firebaseReady = true;
+  }
+
+  runApp(MyApp(firebaseReady: firebaseReady));
+}
+
+class MyApp extends StatelessWidget {
+  final bool firebaseReady;
+
+  const MyApp({super.key, required this.firebaseReady});
+
+  @override
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (context) => CartProvider(),
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: _buildTheme(),
+        home: firebaseReady ? const LoginScreen() : const _FirebaseSetupScreen(),
+      ),
+    );
+  }
+}
+```
+
+### `firebase_options.dart`
+
+Generated configuration file containing Firebase project credentials:
+
+- API keys
+- Project IDs
+- Storage bucket names
+- Platform-specific settings (Android, iOS, Web)
+
+<Note>
+This file is typically generated by `flutterfire configure` and should not be manually edited.
+</Note>
+
+### `lib/service/firebase_backend.dart`
+
+Centralized Firebase service providing:
+
+- Collection references (users, products, events, reviews)
+- Numeric ID generation
+- User profile management
+- Data normalization
+- Error handling
+
+See [Architecture Overview](/development/architecture) for detailed code examples.
+
+## Naming Conventions
+
+The codebase follows Dart/Flutter naming conventions:
+
+### Files and Directories
+- **snake_case**: All file and directory names use lowercase with underscores
+  - ✅ `auth_session.dart`, `product_detail.dart`
+  - ❌ `AuthSession.dart`, `productDetail.dart`
+
+### Classes
+- **PascalCase**: Class names use upper camel case
+  - ✅ `CartProvider`, `FirebaseBackend`, `Product`
+  - ❌ `cartProvider`, `firebase_backend`
+
+### Variables and Functions
+- **camelCase**: Variables and functions use lower camel case
+  - ✅ `userId`, `syncFromFirebase()`, `totalAmount`
+  - ❌ `user_id`, `SyncFromFirebase()`
+
+### Constants
+- **lowerCamelCase**: Constants use lower camel case
+  - ✅ `const background = Color(0xFFEDE3C8);`
+  - Note: Dart doesn't use SCREAMING_SNAKE_CASE for constants
+
+### Private Members
+- **Leading underscore**: Private members start with `_`
+  - ✅ `_items`, `_buildTheme()`, `_FirebaseSetupScreen`
+  - Used for implementation details not exposed outside the file
+
+## Feature Organization
+
+Features are organized by domain:
+
+| Feature | View | Service | Model | Provider |
+|---------|------|---------|-------|----------|
+| Authentication | `view/login/`, `view/register/` | `service/auth_session.dart`, `service/login.dart`, `service/register.dart` | `model/login.dart`, `model/user.dart` | - |
+| Products | `view/home/catalog.dart`, `view/product_detail/` | `service/product.dart` | `model/product.dart` | `provider/cart_provider.dart` |
+| Shopping Cart | `view/cart/` | `service/order.dart` | `model/order.dart` | `provider/cart_provider.dart` |
+| Events | `view/home/event_list.dart`, `view/admin/event_list.dart` | `service/roleplay_event.dart` | `model/roleplay_event.dart` | - |
+| Admin | `view/admin/` | Various services | Various models | - |
+
+## Dependency Flow
+
+Dependencies flow inward:
+
+```
+view/ → provider/ → service/ → model/
+         ↓           ↓
+    component/    util/
+```
+
+- Views depend on providers, services, models, and components
+- Providers depend on models and services
+- Services depend on models and Firebase
+- Models have no dependencies (pure data classes)
+- Components can depend on models but not services
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Architecture" icon="sitemap" href="/development/architecture">
+    Learn about the overall architecture
+  </Card>
+  <Card title="State Management" icon="database" href="/development/state-management">
+    Understand Provider and state patterns
+  </Card>
+</CardGroup>

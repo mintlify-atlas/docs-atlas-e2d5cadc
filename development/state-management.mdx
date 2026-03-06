@@ -1,0 +1,402 @@
+---
+title: State Management
+description: Learn how LarpLand manages application state using Provider and AuthSession
+---
+
+LarpLand uses a hybrid state management approach combining the Provider pattern for reactive state and a singleton pattern for authentication state.
+
+## State Management Architecture
+
+```
+┌────────────────────────────────────────┐
+│        Widget Tree                     │
+└──────────┬─────────────────────────────┘
+           │
+     ┌─────▼─────┐
+     │ Provider  │ (CartProvider)
+     └─────┬─────┘
+           │
+     ┌─────▼─────┐
+     │ Singleton │ (AuthSession)
+     └───────────┘
+```
+
+## Provider Pattern (CartProvider)
+
+The shopping cart uses Flutter's Provider package for reactive state management.
+
+### Implementation
+
+```dart
+// From lib/provider/cart_provider.dart
+import 'package:flutter/material.dart';
+import 'package:larpland/model/product.dart';
+
+class CartProvider with ChangeNotifier {
+  final Map<int, Product> _items = {};
+
+  Map<int, Product> get items => {..._items};
+
+  void addProduct(Product product) {
+    if (_items.containsKey(product.id)) {
+      if (_items[product.id]!.cantidadCarrito < product.cantidad) {
+        _items.update(
+          product.id,
+          (existingProduct) => Product(
+            id: existingProduct.id,
+            nombre: existingProduct.nombre,
+            precio: existingProduct.precio,
+            cantidad: existingProduct.cantidad,
+            cantidadCarrito: existingProduct.cantidadCarrito + 1,
+            descripcion: existingProduct.descripcion,
+            imagen: existingProduct.imagen,
+            valoracionTotal: existingProduct.valoracionTotal,
+            categoria: existingProduct.categoria,
+          ),
+        );
+      } else {
+        throw 'Producto fuera de stock';
+      }
+    } else {
+      _items.putIfAbsent(
+        product.id,
+        () => Product(
+          id: product.id,
+          nombre: product.nombre,
+          precio: product.precio,
+          cantidad: product.cantidad,
+          cantidadCarrito: 1,
+          descripcion: product.descripcion,
+          imagen: product.imagen,
+          valoracionTotal: product.valoracionTotal,
+          categoria: product.categoria,
+        ),
+      );
+    }
+    notifyListeners();
+  }
+
+  void removeProduct(int productId) {
+    if (_items.containsKey(productId)) {
+      if (_items[productId]!.cantidadCarrito > 1) {
+        _items.update(
+          productId,
+          (existingProduct) => Product(
+            id: existingProduct.id,
+            nombre: existingProduct.nombre,
+            precio: existingProduct.precio,
+            cantidad: existingProduct.cantidad,
+            cantidadCarrito: existingProduct.cantidadCarrito - 1,
+            descripcion: existingProduct.descripcion,
+            imagen: existingProduct.imagen,
+            valoracionTotal: existingProduct.valoracionTotal,
+            categoria: existingProduct.categoria,
+          ),
+        );
+      } else {
+        _items.remove(productId);
+      }
+    }
+    notifyListeners();
+  }
+
+  void clearCart() {
+    _items.clear();
+    notifyListeners();
+  }
+
+  double get totalAmount {
+    double total = 0.0;
+    _items.forEach((key, product) {
+      total += double.parse(product.precio) * product.cantidadCarrito;
+    });
+    return total;
+  }
+
+  int get totalItemsCount {
+    int total = 0;
+    for (final product in _items.values) {
+      total += product.cantidadCarrito;
+    }
+    return total;
+  }
+}
+```
+
+### Key Features
+
+#### ChangeNotifier Mixin
+- Extends `ChangeNotifier` to enable reactive updates
+- Calls `notifyListeners()` after state changes
+- Automatically rebuilds listening widgets
+
+#### Private State
+- `_items` map stores cart contents (product ID → Product)
+- Only exposed via getter that returns a copy
+- Prevents external mutation of internal state
+
+#### Computed Properties
+- `totalAmount`: Calculates total cart value
+- `totalItemsCount`: Counts total items in cart
+- Both are getters that compute on-demand
+
+### Provider Setup
+
+The provider is initialized at the app root:
+
+```dart
+// From lib/main.dart
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (context) => CartProvider(),
+      child: MaterialApp(
+        // ...
+      ),
+    );
+  }
+}
+```
+
+### Consuming the Provider
+
+Widgets access the cart state using `Provider.of` or `context.watch`:
+
+```dart
+// Read cart state
+final cart = Provider.of<CartProvider>(context);
+final itemCount = cart.totalItemsCount;
+
+// Or using extension method
+final cart = context.watch<CartProvider>();
+
+// Modify cart state
+cart.addProduct(product);
+cart.removeProduct(productId);
+cart.clearCart();
+```
+
+<Tip>
+Use `context.watch<CartProvider>()` when you need the widget to rebuild on state changes.
+Use `context.read<CartProvider>()` when you only need to call methods without rebuilding.
+</Tip>
+
+## Singleton Pattern (AuthSession)
+
+Authentication state uses a static singleton for global access across the app.
+
+### Implementation
+
+```dart
+// From lib/service/auth_session.dart
+import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
+import 'package:larpland/service/firebase_backend.dart';
+
+class AuthSession {
+  static String? token;
+  static String? firebaseUid;
+  static int? userId;
+  static int? rol;
+
+  static void bind({
+    String? idToken,
+    String? uid,
+    int? sessionUserId,
+    int? sessionRol,
+  }) {
+    token = idToken;
+    firebaseUid = uid;
+    userId = sessionUserId;
+    rol = sessionRol;
+  }
+
+  static Future<void> syncFromFirebase() async {
+    final user = fb_auth.FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      clearLocal();
+      return;
+    }
+
+    final profile = await FirebaseBackend.ensureUserProfile(firebaseUser: user);
+    bind(
+      idToken: await user.getIdToken(),
+      uid: user.uid,
+      sessionUserId: profile['id'] is int
+          ? profile['id'] as int
+          : int.tryParse('${profile['id'] ?? ''}'),
+      sessionRol: profile['rol'] is int
+          ? profile['rol'] as int
+          : int.tryParse('${profile['rol'] ?? ''}'),
+    );
+  }
+
+  static Future<void> signOut() async {
+    try {
+      await FirebaseBackend.auth.signOut();
+    } finally {
+      clearLocal();
+    }
+  }
+
+  static void clearLocal() {
+    token = null;
+    firebaseUid = null;
+    userId = null;
+    rol = null;
+  }
+}
+```
+
+### Key Features
+
+#### Static Members
+- All properties and methods are static
+- No instance creation needed
+- Global access from anywhere: `AuthSession.userId`
+
+#### Session Data
+- `token`: Firebase ID token for authenticated requests
+- `firebaseUid`: Firebase Authentication user ID
+- `userId`: Application-specific numeric user ID
+- `rol`: User role (0=customer, 1=admin)
+
+#### Lifecycle Methods
+
+**`syncFromFirebase()`**
+- Called on app startup and after login
+- Fetches current Firebase Auth user
+- Ensures Firestore user profile exists
+- Updates session with user data
+
+**`signOut()`**
+- Signs out from Firebase Auth
+- Clears local session data
+- Always clears local state (even if Firebase call fails)
+
+**`clearLocal()`**
+- Resets all session variables to null
+- Called on logout and when no user is authenticated
+
+### Usage Example
+
+```dart
+// Check if user is authenticated
+if (AuthSession.userId != null) {
+  // User is logged in
+  print('User ID: ${AuthSession.userId}');
+  print('Role: ${AuthSession.rol}');
+}
+
+// Access from anywhere in the app
+class SomeWidget extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final isAdmin = AuthSession.rol == 1;
+    return Text(isAdmin ? 'Admin Panel' : 'User Panel');
+  }
+}
+
+// Logout
+await AuthSession.signOut();
+Navigator.pushReplacement(
+  context,
+  MaterialPageRoute(builder: (context) => LoginScreen()),
+);
+```
+
+## Local Widget State
+
+Some state is managed locally within widgets using `StatefulWidget`:
+
+```dart
+// From lib/view/home/home_screen.dart
+class _HomeScreenState extends State<HomeScreen> {
+  int selectedIndex = 0;
+  int _eventsRefreshSignal = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: selectedIndex,
+        onDestinationSelected: (value) {
+          setState(() {
+            selectedIndex = value;
+            if (value == 1) {
+              _eventsRefreshSignal++;
+            }
+          });
+        },
+        // ...
+      ),
+    );
+  }
+}
+```
+
+Local state is appropriate for:
+- UI-only state (selected tab, expanded sections)
+- Temporary form input
+- Animation controllers
+- State that doesn't need to be shared
+
+## State Management Decision Tree
+
+Choose the right state management approach:
+
+```
+Is this state needed across multiple screens?
+├─ Yes
+│  ├─ Is it authentication/user data?
+│  │  └─ Use AuthSession (singleton)
+│  └─ Is it reactive/frequently updated?
+│     └─ Use Provider (e.g., CartProvider)
+└─ No
+   └─ Use local StatefulWidget state
+```
+
+## Best Practices
+
+### Provider Pattern
+
+<Check>Keep providers focused on a single concern (e.g., cart, not "app state")</Check>
+<Check>Always call `notifyListeners()` after state changes</Check>
+<Check>Return copies of collections from getters to prevent mutation</Check>
+<Check>Use computed getters for derived state</Check>
+
+### AuthSession Singleton
+
+<Check>Only use for truly global, singleton state</Check>
+<Check>Keep session data minimal (IDs and tokens only)</Check>
+<Check>Always clear session on logout</Check>
+<Check>Sync session on app startup and login</Check>
+
+### Local State
+
+<Check>Use for UI-only state that doesn't leave the widget</Check>
+<Check>Avoid duplicating state from providers</Check>
+<Check>Keep state minimal and close to where it's used</Check>
+
+## State Persistence
+
+<Warning>
+Currently, cart and session state is **not persisted** across app restarts. Users will lose their cart contents and need to log in again.
+</Warning>
+
+To add persistence:
+
+1. **Cart**: Use `shared_preferences` or `hive` to save cart items
+2. **Auth**: Firebase Auth automatically persists user sessions
+3. **AuthSession**: Load user data on startup if Firebase user exists
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Architecture" icon="sitemap" href="/development/architecture">
+    Understand the overall app architecture
+  </Card>
+  <Card title="Project Structure" icon="folder-tree" href="/development/project-structure">
+    Explore the codebase organization
+  </Card>
+</CardGroup>

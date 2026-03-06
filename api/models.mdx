@@ -1,0 +1,148 @@
+---
+title: Data Models
+description: Core data models used throughout LarpLand
+---
+
+LarpLand uses strongly-typed data models to represent entities in the application. All models include JSON deserialization with robust type coercion.
+
+## User
+
+Represents a registered user in the system.
+
+**Source:** `lib/model/user.dart:1`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `int` | Unique user identifier |
+| `name` | `String` | User's display name |
+| `email` | `String` | User's email address |
+
+**Factory Method:**
+- `User.fromJson(Map<String, dynamic> json)` - Creates a User instance from JSON data
+
+---
+
+## Product
+
+Represents a product available for purchase in the marketplace.
+
+**Source:** `lib/model/product.dart:1`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `int` | Unique product identifier |
+| `nombre` | `String` | Product name |
+| `descripcion` | `String` | Product description |
+| `precio` | `String` | Product price (as string for formatting) |
+| `imagen` | `String` | Product image URL |
+| `cantidad` | `int` | Available stock quantity |
+| `valoracionTotal` | `String` | Overall product rating |
+| `categoria` | `String` | Product category |
+| `cantidadCarrito` | `int` | Quantity in shopping cart (default: 1) |
+
+**Factory Method:**
+- `Product.fromJson(Map<String, dynamic> json)` - Creates a Product instance from JSON data with field validation
+
+---
+
+## RoleplayEvent
+
+Represents a roleplay event that users can register for.
+
+**Source:** `lib/model/roleplay_event.dart:1`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `int` | Unique event identifier |
+| `name` | `String` | Event name |
+| `description` | `String` | Event description |
+| `fechaInicio` | `String` | Event start date/time (ISO 8601 string) |
+| `fechaFin` | `String` | Event end date/time (ISO 8601 string) |
+| `isRegistered` | `bool` | Whether the current user is registered (default: false) |
+
+**Factory Method:**
+- `RoleplayEvent.fromJson(Map<String, dynamic> json)` - Creates a RoleplayEvent from JSON, supporting both Spanish and English field names
+
+---
+
+## UserOrder
+
+Represents a customer order with line items.
+
+**Source:** `lib/model/order.dart:1`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `int` | Unique order identifier |
+| `userId` | `int` | ID of the user who placed the order |
+| `totalAmount` | `double` | Total order amount |
+| `totalItems` | `int` | Total number of items in order |
+| `status` | `String` | Order status (e.g., "completed", "pending") |
+| `createdAt` | `DateTime?` | Order creation timestamp |
+| `items` | `List<UserOrderItem>` | Line items in the order |
+
+**Factory Method:**
+- `UserOrder.fromJson(Map<String, dynamic> json)` - Creates a UserOrder from JSON with nested items
+
+---
+
+## UserOrderItem
+
+Represents a single line item within an order.
+
+**Source:** `lib/model/order.dart:57`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `productId` | `int` | ID of the ordered product |
+| `productName` | `String` | Name of the ordered product |
+| `unitPrice` | `String` | Price per unit |
+| `quantity` | `int` | Quantity ordered |
+| `lineTotal` | `double` | Total for this line (unitPrice × quantity) |
+| `imageUrl` | `String` | Product image URL |
+
+**Factory Method:**
+- `UserOrderItem.fromJson(Map<String, dynamic> json)` - Creates a UserOrderItem from JSON with default values
+
+---
+
+## ProductReviews
+
+Represents a user review for a product.
+
+**Source:** `lib/model/user_review.dart:1`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `int` | Unique review identifier |
+| `userId` | `int` | ID of the user who wrote the review |
+| `productId` | `int` | ID of the reviewed product |
+| `rating` | `int` | Star rating (typically 1-5) |
+| `comment` | `String` | Review text |
+| `createdAt` | `DateTime?` | Review creation timestamp |
+
+**Factory Method:**
+- `ProductReviews.fromJson(Map<String, dynamic> json)` - Creates a ProductReviews instance from JSON
+
+---
+
+## Login
+
+Represents a login response with user authentication details.
+
+**Source:** `lib/model/login.dart:1`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `status` | `String` | Login status ("success" or "error") |
+| `rol` | `int` | User role/permission level |
+| `message` | `String` | Status message |
+| `userId` | `int` | Authenticated user's ID |
+| `token` | `String?` | Authentication token (optional) |
+
+**Factory Method:**
+- `Login.fromJson(Map<String, dynamic> json)` - Creates a Login instance from JSON, supporting multiple token field names and nested payload structures
+
+<Note>
+All models include robust type coercion in their `fromJson` methods, converting between `int`, `num`, `String`, and other types as needed to handle varied JSON structures.
+</Note>

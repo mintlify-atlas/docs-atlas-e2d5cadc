@@ -1,0 +1,536 @@
+---
+title: 'Firebase Setup'
+description: 'Configure Firebase Authentication, Firestore, and Storage for LarpLand'
+---
+
+## Overview
+
+LarpLand uses Firebase as its backend, providing authentication, real-time database, and file storage capabilities. This guide will walk you through setting up Firebase for your LarpLand project.
+
+<Note>
+  The project is designed to work on the **firebase branch**. The master branch uses a Laravel REST API backend.
+</Note>
+
+---
+
+## Create a Firebase Project
+
+<Steps>
+  <Step title="Go to Firebase Console">
+    Navigate to [console.firebase.google.com](https://console.firebase.google.com) and sign in with your Google account.
+  </Step>
+
+  <Step title="Create New Project">
+    Click "Add project" and follow the setup wizard:
+    
+    - Enter a project name (e.g., "larpland")
+    - Choose whether to enable Google Analytics (optional)
+    - Accept the terms and create the project
+  </Step>
+
+  <Step title="Wait for Initialization">
+    Firebase will take a moment to provision your project resources.
+  </Step>
+</Steps>
+
+---
+
+## Enable Firebase Services
+
+### Firebase Authentication
+
+<Steps>
+  <Step title="Navigate to Authentication">
+    In the Firebase Console, go to **Build** → **Authentication**
+  </Step>
+
+  <Step title="Get Started">
+    Click "Get started" if this is your first time setting up Authentication
+  </Step>
+
+  <Step title="Enable Email/Password Provider">
+    - Go to the **Sign-in method** tab
+    - Click on **Email/Password**
+    - Enable the provider
+    - Click **Save**
+  </Step>
+</Steps>
+
+<Note>
+  LarpLand uses email/password authentication. The app handles user registration and login through Firebase Auth.
+</Note>
+
+### Cloud Firestore Database
+
+<Steps>
+  <Step title="Navigate to Firestore">
+    In the Firebase Console, go to **Build** → **Firestore Database**
+  </Step>
+
+  <Step title="Create Database">
+    Click "Create database"
+  </Step>
+
+  <Step title="Choose Starting Mode">
+    Select **Test mode** for development (allows read/write access for 30 days)
+    
+    <Warning>
+      For production, you'll need to configure proper security rules (covered below).
+    </Warning>
+  </Step>
+
+  <Step title="Select Location">
+    Choose a Firestore location close to your users for better performance
+  </Step>
+</Steps>
+
+### Firebase Storage
+
+<Steps>
+  <Step title="Navigate to Storage">
+    In the Firebase Console, go to **Build** → **Storage**
+  </Step>
+
+  <Step title="Get Started">
+    Click "Get started"
+  </Step>
+
+  <Step title="Choose Starting Mode">
+    Select **Test mode** for development
+    
+    <Warning>
+      For production, configure proper security rules to restrict access.
+    </Warning>
+  </Step>
+
+  <Step title="Select Location">
+    Choose a storage location (should match your Firestore region)
+  </Step>
+</Steps>
+
+---
+
+## Configure FlutterFire
+
+### Install FlutterFire CLI
+
+The FlutterFire CLI simplifies Firebase configuration across platforms:
+
+```bash
+dart pub global activate flutterfire_cli
+```
+
+Verify installation:
+
+```bash
+flutterfire --version
+```
+
+### Run FlutterFire Configure
+
+From your project root, run:
+
+```bash
+flutterfire configure
+```
+
+This command will:
+
+1. Prompt you to select your Firebase project
+2. Ask which platforms you want to configure (Android, iOS, Web, etc.)
+3. Generate `lib/firebase_options.dart` with platform-specific configurations
+4. Create platform configuration files (`google-services.json`, `GoogleService-Info.plist`)
+
+<Note>
+  Make sure you're logged in with `firebase login` before running this command.
+</Note>
+
+---
+
+## Platform-Specific Configuration
+
+<Tabs>
+  <Tab title="Android">
+    ### Android Configuration
+
+    #### Add google-services.json
+
+    The `flutterfire configure` command should automatically place `google-services.json` in the correct location:
+
+    ```
+    android/app/google-services.json
+    ```
+
+    #### Verify build.gradle Configuration
+
+    Ensure your `android/app/build.gradle` includes the Google Services plugin:
+
+    ```gradle android/app/build.gradle
+    plugins {
+        id "com.android.application"
+        id "kotlin-android"
+        id "dev.flutter.flutter-gradle-plugin"
+        id "com.google.gms.google-services"  // Must be last
+    }
+    ```
+
+    The project already includes this configuration.
+
+    #### Example google-services.json Structure
+
+    Your file should look similar to this:
+
+    ```json android/app/google-services.json
+    {
+      "project_info": {
+        "project_number": "551562159252",
+        "project_id": "larpland-c6689",
+        "storage_bucket": "larpland-c6689.firebasestorage.app"
+      },
+      "client": [
+        {
+          "client_info": {
+            "mobilesdk_app_id": "1:551562159252:android:f882bc8173a889a3af4081",
+            "android_client_info": {
+              "package_name": "com.example.larpland"
+            }
+          },
+          "api_key": [
+            {
+              "current_key": "YOUR_ANDROID_API_KEY"
+            }
+          ]
+        }
+      ]
+    }
+    ```
+
+    <Warning>
+      Replace example values with your actual Firebase project credentials.
+    </Warning>
+  </Tab>
+
+  <Tab title="iOS">
+    ### iOS Configuration
+
+    #### Add GoogleService-Info.plist
+
+    1. Download `GoogleService-Info.plist` from Firebase Console or use the file generated by `flutterfire configure`
+    2. Place it in `ios/Runner/GoogleService-Info.plist`
+    3. Open Xcode and add the file to your Runner target:
+       - Right-click on `Runner` folder in Xcode
+       - Select "Add Files to Runner"
+       - Choose `GoogleService-Info.plist`
+       - Make sure "Copy items if needed" is checked
+
+    #### Verify Bundle Identifier
+
+    Ensure your iOS bundle identifier matches what's configured in Firebase:
+
+    ```
+    com.example.larpland
+    ```
+
+    Update in Xcode under **Runner** → **General** → **Identity** if needed.
+
+    #### Install CocoaPods Dependencies
+
+    ```bash
+    cd ios
+    pod install
+    cd ..
+    ```
+  </Tab>
+
+  <Tab title="Web">
+    ### Web Configuration
+
+    For web, all configuration is handled in `lib/firebase_options.dart`. The `flutterfire configure` command automatically generates the web configuration.
+
+    Your `firebase_options.dart` will include web-specific settings:
+
+    ```dart lib/firebase_options.dart
+    static const FirebaseOptions web = FirebaseOptions(
+      apiKey: 'AIzaSyBg2JPMozYcaVISOu3pDffsiI8z71SHPyo',
+      appId: '1:739095155067:web:490fa2e2b8a267f85b6dde',
+      messagingSenderId: '739095155067',
+      projectId: 'larpland-61c86',
+      authDomain: 'larpland-61c86.firebaseapp.com',
+      storageBucket: 'larpland-61c86.firebasestorage.app',
+    );
+    ```
+
+    <Note>
+      Web builds automatically use this configuration when running on web platform.
+    </Note>
+  </Tab>
+
+  <Tab title="Other Platforms">
+    ### Windows, macOS, Linux
+
+    Desktop platforms use similar configurations to web. The `firebase_options.dart` file includes platform-specific configurations:
+
+    ```dart lib/firebase_options.dart
+    static const FirebaseOptions windows = FirebaseOptions(
+      apiKey: 'YOUR_API_KEY',
+      appId: 'YOUR_APP_ID',
+      messagingSenderId: 'YOUR_SENDER_ID',
+      projectId: 'your-project-id',
+      authDomain: 'your-project.firebaseapp.com',
+      storageBucket: 'your-project.firebasestorage.app',
+    );
+    ```
+
+    Run `flutterfire configure` and select the desktop platforms you want to support.
+  </Tab>
+</Tabs>
+
+---
+
+## Firebase Options File
+
+The generated `lib/firebase_options.dart` file contains all platform configurations:
+
+<CodeGroup>
+```dart lib/firebase_options.dart
+import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform, kIsWeb;
+
+class DefaultFirebaseOptions {
+  static FirebaseOptions get currentPlatform {
+    if (kIsWeb) {
+      return web;
+    }
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+        return android;
+      case TargetPlatform.iOS:
+        return ios;
+      case TargetPlatform.macOS:
+        return macos;
+      case TargetPlatform.windows:
+        return windows;
+      case TargetPlatform.linux:
+        return linux;
+      default:
+        throw UnsupportedError(
+          'DefaultFirebaseOptions no soporta esta plataforma.',
+        );
+    }
+  }
+
+  // Platform-specific configurations
+  static const FirebaseOptions android = FirebaseOptions(
+    apiKey: 'YOUR_ANDROID_API_KEY',
+    appId: 'YOUR_ANDROID_APP_ID',
+    messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
+    projectId: 'your-project-id',
+    storageBucket: 'your-project.firebasestorage.app',
+  );
+
+  static const FirebaseOptions ios = FirebaseOptions(
+    apiKey: 'YOUR_IOS_API_KEY',
+    appId: 'YOUR_IOS_APP_ID',
+    messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
+    projectId: 'your-project-id',
+    storageBucket: 'your-project.firebasestorage.app',
+    iosBundleId: 'com.example.larpland',
+  );
+
+  // ... other platforms
+}
+```
+</CodeGroup>
+
+<Warning>
+  Replace placeholder values with your actual Firebase credentials from the Firebase Console.
+</Warning>
+
+---
+
+## Firestore Security Rules
+
+For production deployments, configure proper Firestore security rules:
+
+```javascript firestore.rules
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // User profiles - users can read/write their own profile
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Products - public read, admin write
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if request.auth != null && 
+                     get(/databases/$(database)/documents/users/$(request.auth.uid)).data.rol == 1;
+    }
+    
+    // Events - public read, admin write
+    match /events/{eventId} {
+      allow read: if true;
+      allow write: if request.auth != null && 
+                     get(/databases/$(database)/documents/users/$(request.auth.uid)).data.rol == 1;
+    }
+    
+    // Orders - users can read/write their own orders
+    match /orders/{orderId} {
+      allow read: if request.auth != null && 
+                    (request.auth.uid == resource.data.userId || 
+                     get(/databases/$(database)/documents/users/$(request.auth.uid)).data.rol == 1);
+      allow create: if request.auth != null;
+    }
+    
+    // Reviews - authenticated users can write, everyone can read
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && 
+                              request.auth.uid == resource.data.userId;
+    }
+  }
+}
+```
+
+Deploy rules using the Firebase CLI:
+
+```bash
+firebase deploy --only firestore:rules
+```
+
+---
+
+## Storage Security Rules
+
+Configure Firebase Storage security rules:
+
+```javascript storage.rules
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Product images - public read, admin write
+    match /products/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null && 
+                     firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.rol == 1;
+    }
+    
+    // User avatars - users can upload their own
+    match /users/{userId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}
+```
+
+Deploy storage rules:
+
+```bash
+firebase deploy --only storage
+```
+
+---
+
+## Initialize Firebase in the App
+
+The app automatically initializes Firebase in `lib/main.dart`:
+
+<CodeGroup>
+```dart lib/main.dart
+import 'package:firebase_core/firebase_core.dart';
+import 'package:larpland/firebase_options.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  var firebaseReady = false;
+  if (DefaultFirebaseOptions.isConfigured) {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    await AuthSession.syncFromFirebase();
+    firebaseReady = true;
+  }
+
+  runApp(MyApp(firebaseReady: firebaseReady));
+}
+```
+</CodeGroup>
+
+If Firebase is not configured, the app will display a setup screen with instructions.
+
+---
+
+## Verify Firebase Setup
+
+<Steps>
+  <Step title="Run the App">
+    Start the app on your device or emulator:
+    
+    ```bash
+    flutter run
+    ```
+  </Step>
+
+  <Step title="Check for Firebase Setup Screen">
+    If Firebase is not configured, you'll see a setup screen with configuration instructions.
+    
+    If properly configured, you'll see the login screen.
+  </Step>
+
+  <Step title="Test Registration">
+    Try creating a new account to verify Firebase Authentication is working.
+  </Step>
+
+  <Step title="Check Firebase Console">
+    Verify that new users appear in **Authentication** → **Users** tab in the Firebase Console.
+  </Step>
+</Steps>
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Firebase not configured error">
+    Ensure `lib/firebase_options.dart` exists and contains valid credentials. Run `flutterfire configure` again if needed.
+  </Accordion>
+
+  <Accordion title="google-services.json not found">
+    Make sure `google-services.json` is in `android/app/` directory and the file is not empty.
+  </Accordion>
+
+  <Accordion title="iOS build fails">
+    - Run `cd ios && pod install && cd ..`
+    - Clean build folder: `flutter clean`
+    - Rebuild: `flutter build ios`
+  </Accordion>
+
+  <Accordion title="Permission denied errors">
+    Check your Firestore and Storage security rules. For development, you can temporarily use test mode rules.
+  </Accordion>
+
+  <Accordion title="API key restrictions">
+    In Firebase Console, go to **Project Settings** → **Cloud Messaging** and ensure API keys are properly configured for your platforms.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Follow the quick start guide to get your app running
+  </Card>
+  <Card title="Firebase Documentation" icon="book" href="https://firebase.google.com/docs">
+    Learn more about Firebase features and best practices
+  </Card>
+</CardGroup>

@@ -1,0 +1,240 @@
+---
+title: Product Reviews
+description: Read and write product reviews in LarpLand
+---
+
+LarpLand includes a comprehensive review system that lets customers share their experiences and rate products.
+
+## Viewing Product Reviews
+
+Product reviews are accessible from the product detail page:
+
+<Steps>
+  <Step title="Open product details">
+    Tap any product card in the catalog to view its detail page
+  </Step>
+  <Step title="Scroll to reviews section">
+    Below the product information, you'll find the "Comentarios y valoraciones" section
+  </Step>
+  <Step title="Read reviews">
+    Browse through customer reviews, ratings, and comments
+  </Step>
+</Steps>
+
+### Review Card Display
+
+Each review is shown in a card with:
+
+- **User avatar**: Circular badge with the reviewer's first initial
+- **User name**: The reviewer's display name
+- **Review date**: When the review was posted (formatted for readability)
+- **Star rating**: Visual rating out of 5 stars (filled stars indicate the rating)
+- **Review comment**: The full text of the customer's review
+
+### Review Sorting
+
+Reviews are displayed in reverse chronological order:
+
+- Newest reviews appear first
+- Older reviews appear below
+- This ensures you see the most recent customer feedback
+
+### Date Formatting
+
+Review dates are displayed in a user-friendly format:
+
+- **Today**: "Hoy, HH:MM" (e.g., "Hoy, 14:30")
+- **Yesterday**: "Ayer, HH:MM" (e.g., "Ayer, 09:15")
+- **Within a week**: "Hace X dias" (e.g., "Hace 3 dias")
+- **Older**: DD/MM/YYYY format (e.g., "15/02/2026")
+
+### Empty Review State
+
+If a product has no reviews yet:
+
+- A message displays: "Todavia no hay resenas para este producto."
+- You can be the first to review the product
+
+## Writing a Review
+
+To submit a review for a product:
+
+<Steps>
+  <Step title="Navigate to product detail">
+    Open the product detail page from the catalog
+  </Step>
+  <Step title="Scroll to review form">
+    Below the existing reviews, you'll find the "Anade una resena" form
+  </Step>
+  <Step title="Enter your comment">
+    Type your review in the multi-line text field (3 lines visible)
+  </Step>
+  <Step title="Select rating">
+    Choose a rating from 1 to 5 stars using the dropdown selector
+  </Step>
+  <Step title="Submit review">
+    Tap the "Enviar resena" button to post your review
+  </Step>
+</Steps>
+
+### Review Form Fields
+
+The review form includes:
+
+- **Comment field** (required): Share your thoughts about the product
+- **Rating dropdown** (required): Select from 1 to 5 stars
+- **Submit button**: Sends your review with a confirmation message
+
+### Rating Scale
+
+Use the following rating guidelines:
+
+- **5 stars**: Excellent, exceeded expectations
+- **4 stars**: Very good, met expectations
+- **3 stars**: Average, acceptable quality
+- **2 stars**: Below average, some issues
+- **1 star**: Poor, significant problems
+
+## Review Validation
+
+The review system enforces several rules:
+
+### Required Fields
+
+- **Comment**: You must enter text in the comment field
+- Empty or whitespace-only comments are rejected
+- An error message prompts: "Por favor, introduce un comentario"
+
+### One Review Per Product
+
+<Warning>
+  You can only submit one review per product. If you try to submit a second review, you'll see: "Ya has enviado una resena."
+</Warning>
+
+This prevents spam and ensures genuine feedback.
+
+## Submission Process
+
+When you submit a review:
+
+<Steps>
+  <Step title="Validation">
+    The form checks that all required fields are filled
+  </Step>
+  <Step title="Duplicate check">
+    The system verifies you haven't already reviewed this product
+  </Step>
+  <Step title="Save review">
+    Your review is saved with your user ID, product ID, comment, and rating
+  </Step>
+  <Step title="Update rating">
+    The product's overall rating is recalculated automatically
+  </Step>
+  <Step title="Refresh display">
+    The reviews list updates to show your new review
+  </Step>
+  <Step title="Form reset">
+    The comment field clears, ready for future reviews on other products
+  </Step>
+</Steps>
+
+### Processing Indicator
+
+While submitting your review:
+
+- The submit button shows a loading spinner
+- Button text changes to "Enviando..."
+- The button is disabled to prevent duplicate submissions
+
+## Product Rating Updates
+
+When you submit a review:
+
+1. **Immediate calculation**: The system calculates the new average rating
+2. **Automatic update**: The product's overall rating updates in real-time
+3. **Visible changes**: The rating displayed on the product detail page refreshes
+4. **Catalog sync**: The updated rating appears in the product catalog
+
+### Rating Calculation
+
+Product ratings are calculated as:
+
+- Sum of all review ratings ÷ number of reviews
+- Displayed to one decimal place (e.g., "4.3")
+- Shown as "X / 5" format
+
+## Review Display Components
+
+### User Avatar
+
+Review cards include a personalized avatar:
+
+- Circular design with parchment background color (#F3EBD4)
+- Displays the first letter of the reviewer's name
+- Dark green text color (#2C4432)
+- Fallback to "?" if the username is empty
+
+### Star Rating Visualization
+
+Ratings are displayed as:
+
+- Filled stars (★) for the rating value
+- Outlined stars (☆) for remaining stars up to 5
+- Amber color for high visibility
+- 18px size for readability
+
+## Error Handling
+
+### Review Loading Errors
+
+If reviews fail to load:
+
+- An error message displays with details
+- The review form remains available
+- You can still submit a review even if existing reviews won't load
+
+### Submission Errors
+
+If your review fails to submit:
+
+1. An error snackbar appears with details
+2. Your comment text is preserved in the form
+3. The submit button re-enables so you can retry
+4. Check your internet connection and try again
+
+## Review Guidelines
+
+For helpful, high-quality reviews:
+
+- **Be specific**: Mention what you liked or disliked
+- **Be honest**: Share your genuine experience
+- **Be respectful**: Keep comments constructive
+- **Be relevant**: Focus on the product itself
+
+<Note>
+  Reviews are displayed publicly to all LarpLand users. Write reviews that help others make informed purchasing decisions.
+</Note>
+
+## Review Lifecycle
+
+### After Submission
+
+Once you submit a review:
+
+- It appears immediately in the reviews section
+- Other users can see your review when viewing the product
+- The product's average rating updates to reflect your input
+- Your review remains associated with your user account
+
+### Editing or Deleting
+
+<Warning>
+  The current version does not support editing or deleting reviews. Make sure your review is accurate before submitting.
+</Warning>
+
+## Best Practices
+
+- Review products after you've had time to use them
+- Provide context about your experience
+- Mention how the product meets (or doesn't meet) its description
+- Rate honestly to help other roleplayers make informed choices

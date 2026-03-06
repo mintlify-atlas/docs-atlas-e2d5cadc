@@ -1,0 +1,110 @@
+---
+title: Admin Panel Overview
+description: Overview of the LarpLand admin panel and its core features
+---
+
+The LarpLand admin panel provides a centralized interface for managing all aspects of your LARP store, including users, inventory, orders, and events.
+
+## Accessing the Admin Panel
+
+The admin panel is accessible to users with admin permissions. Access is controlled by the `rol` field in the user profile:
+
+- Only users with the appropriate admin role can access the admin panel
+- Admin access is verified through the `AuthSession` service
+- Upon logout, users are redirected back to the main application
+
+## Admin Dashboard Layout
+
+The admin panel uses a tab-based navigation system with four main sections:
+
+<Steps>
+  <Step title="Users Management (Gestion de usuarios)">
+    View and manage all registered users in the system. This is the first tab and displays user information including ID, name, and email.
+  </Step>
+  
+  <Step title="Product Inventory (Inventario del gremio)">
+    Manage your product catalog, including adding new items, editing existing products, and tracking stock levels.
+  </Step>
+  
+  <Step title="Order Management (Control de pedidos)">
+    View and process all customer orders, update order statuses, and track order history.
+  </Step>
+  
+  <Step title="Events Panel (Panel de eventos)">
+    Create and manage LARP events, including event details, dates, and participant tracking.
+  </Step>
+</Steps>
+
+## Navigation Between Sections
+
+The admin panel features a bottom navigation bar with clear icons and labels for each section:
+
+```dart
+// Navigation destinations from adminhome.dart:143-164
+NavigationDestination(
+  icon: Icon(Icons.group_outlined),
+  selectedIcon: Icon(Icons.group),
+  label: 'Usuarios',
+),
+NavigationDestination(
+  icon: Icon(Icons.inventory_2_outlined),
+  selectedIcon: Icon(Icons.inventory_2),
+  label: 'Inventario',
+),
+NavigationDestination(
+  icon: Icon(Icons.receipt_long_outlined),
+  selectedIcon: Icon(Icons.receipt_long),
+  label: 'Pedidos',
+),
+NavigationDestination(
+  icon: Icon(Icons.event_outlined),
+  selectedIcon: Icon(Icons.event),
+  label: 'Eventos',
+)
+```
+
+## Admin Permissions
+
+Access to the admin panel is role-based:
+
+- The `rol` field in the user model determines admin access
+- Users without admin permissions cannot access the admin panel
+- The admin panel checks permissions on initialization
+
+## Admin Panel Features
+
+### Header
+The admin panel header displays:
+- "LarpLand Admin" title
+- Current section name (dynamically updated based on selected tab)
+- Logout button for ending the admin session
+
+### Main Content Area
+The main content uses an `IndexedStack` to efficiently switch between sections:
+
+```dart
+// From adminhome.dart:100-103
+IndexedStack(
+  index: selectedIndex,
+  children: screens,
+)
+```
+
+This approach keeps all sections in memory while only displaying the selected one, providing instant tab switching.
+
+## Session Management
+
+Admins can log out at any time using the logout button:
+
+```dart
+// From adminhome.dart:85-89
+onPressed: () async {
+  await AuthSession.signOut();
+  if (!context.mounted) return;
+  Navigator.pop(context);
+}
+```
+
+<Note>
+The admin panel is designed for desktop and tablet use with a responsive layout that adapts to different screen sizes.
+</Note>

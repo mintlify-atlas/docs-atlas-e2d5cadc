@@ -1,0 +1,294 @@
+---
+title: FirebaseBackend
+description: Core Firebase utilities and helpers
+---
+
+The `FirebaseBackend` class provides centralized access to Firebase services and utility methods for working with Firestore.
+
+**Source:** `lib/service/firebase_backend.dart`
+
+## Static Getters
+
+### firestore
+
+Access to the Firestore database instance.
+
+```dart
+static FirebaseFirestore get firestore
+```
+
+**Source:** `lib/service/firebase_backend.dart:8`
+
+---
+
+### storage
+
+Access to Firebase Storage instance.
+
+```dart
+static FirebaseStorage get storage
+```
+
+**Source:** `lib/service/firebase_backend.dart:9`
+
+---
+
+### auth
+
+Access to Firebase Authentication instance.
+
+```dart
+static fb_auth.FirebaseAuth get auth
+```
+
+**Source:** `lib/service/firebase_backend.dart:10`
+
+---
+
+### users
+
+Reference to the `users` collection.
+
+```dart
+static CollectionReference<Map<String, dynamic>> get users
+```
+
+**Source:** `lib/service/firebase_backend.dart:12`
+
+---
+
+### products
+
+Reference to the `products` collection.
+
+```dart
+static CollectionReference<Map<String, dynamic>> get products
+```
+
+**Source:** `lib/service/firebase_backend.dart:15`
+
+---
+
+### events
+
+Reference to the `events` collection.
+
+```dart
+static CollectionReference<Map<String, dynamic>> get events
+```
+
+**Source:** `lib/service/firebase_backend.dart:18`
+
+---
+
+### reviews
+
+Reference to the `reviews` collection.
+
+```dart
+static CollectionReference<Map<String, dynamic>> get reviews
+```
+
+**Source:** `lib/service/firebase_backend.dart:21`
+
+---
+
+## Methods
+
+### ensureInitialized
+
+Verifies that Firebase has been initialized before performing operations.
+
+```dart
+static void ensureInitialized()
+```
+
+**Throws:** `AppError` if Firebase is not initialized
+
+**Source:** `lib/service/firebase_backend.dart:27`
+
+<Warning>
+All service methods call this automatically. You typically don't need to call it directly.
+</Warning>
+
+---
+
+### nextNumericId
+
+Generates the next sequential numeric ID for a collection using atomic transactions.
+
+```dart
+static Future<int> nextNumericId(String counterKey)
+```
+
+**Parameters:**
+- `counterKey` - The counter name (e.g., "products", "users", "orders")
+
+**Returns:** The next available ID
+
+**Source:** `lib/service/firebase_backend.dart:37`
+
+<Info>
+This method uses Firestore transactions to ensure IDs are unique even under concurrent access. Counters are stored in `_meta/counters` document.
+</Info>
+
+---
+
+### findByNumericId
+
+Finds a document by its numeric `id` field (not Firestore document ID).
+
+```dart
+static Future<DocumentSnapshot<Map<String, dynamic>>> findByNumericId(
+  CollectionReference<Map<String, dynamic>> collection,
+  int id,
+)
+```
+
+**Parameters:**
+- `collection` - The collection to search
+- `id` - The numeric ID value
+
+**Returns:** Document snapshot
+
+**Throws:** `AppError` with code `firestore.not_found` if no document found
+
+**Source:** `lib/service/firebase_backend.dart:52`
+
+---
+
+### findRefByNumericId
+
+Finds a document reference by its numeric `id` field.
+
+```dart
+static Future<DocumentReference<Map<String, dynamic>>> findRefByNumericId(
+  CollectionReference<Map<String, dynamic>> collection,
+  int id,
+)
+```
+
+**Parameters:**
+- `collection` - The collection to search
+- `id` - The numeric ID value
+
+**Returns:** Document reference
+
+**Throws:** `AppError` if not found
+
+**Source:** `lib/service/firebase_backend.dart:67`
+
+---
+
+### ensureUserProfile
+
+Creates or updates a user profile document based on Firebase Auth user.
+
+```dart
+static Future<Map<String, dynamic>> ensureUserProfile({
+  required fb_auth.User firebaseUser,
+  String? fallbackName,
+})
+```
+
+**Parameters:**
+- `firebaseUser` - The Firebase Authentication user
+- `fallbackName` - Name to use if displayName is empty (optional)
+
+**Returns:** The user profile data with numeric ID
+
+**Behavior:**
+- If profile exists by `firebase_uid`, updates it with latest email/displayName
+- If profile doesn't exist, creates new one with auto-generated numeric ID
+- Assigns role 0 (standard user) by default
+
+**Source:** `lib/service/firebase_backend.dart:75`
+
+---
+
+### normalizeSnapshotData
+
+Extracts and normalizes data from a Firestore document snapshot.
+
+```dart
+static Map<String, dynamic> normalizeSnapshotData(
+  DocumentSnapshot<Map<String, dynamic>> doc,
+)
+```
+
+**Parameters:**
+- `doc` - Firestore document snapshot
+
+**Returns:** Normalized data map with:
+- All document fields
+- `doc_id` field containing the Firestore document ID
+- All `Timestamp` fields converted to ISO 8601 strings
+
+**Source:** `lib/service/firebase_backend.dart:124`
+
+---
+
+### normalizeMap
+
+Normalizes a map by converting Firestore types to JSON-friendly types.
+
+```dart
+static Map<String, dynamic> normalizeMap(Map<String, dynamic> source)
+```
+
+**Transformations:**
+- `Timestamp` → ISO 8601 string
+- Nested maps → recursively normalized
+- Iterables → normalized lists
+
+**Source:** `lib/service/firebase_backend.dart:131`
+
+---
+
+## Error Handling
+
+All methods throw `AppError` exceptions with specific error codes:
+
+| Code | Description |
+|------|-------------|
+| `firebase.not_initialized` | Firebase hasn't been initialized |
+| `firestore.not_found` | Document not found by numeric ID |
+| `firestore.permission_denied` | Firestore security rules denied access |
+| `firestore.failed_precondition` | Firestore database not created in console |
+| `firestore.unavailable` | Network issues or project unavailable |
+| `firestore.unauthenticated` | Authentication required |
+| `firestore.unknown` | Usually indicates rules issues |
+
+**Source:** `lib/service/firebase_backend.dart:157`
+
+## Usage Example
+
+```dart
+import 'package:larpland/service/firebase_backend.dart';
+
+// Access collections
+final users = FirebaseBackend.users;
+final products = FirebaseBackend.products;
+
+// Generate next ID
+final newProductId = await FirebaseBackend.nextNumericId('products');
+
+// Find by numeric ID
+final userDoc = await FirebaseBackend.findByNumericId(
+  FirebaseBackend.users,
+  123,
+);
+final userData = FirebaseBackend.normalizeSnapshotData(userDoc);
+
+// Ensure user profile exists
+final currentUser = FirebaseBackend.auth.currentUser;
+if (currentUser != null) {
+  final profile = await FirebaseBackend.ensureUserProfile(
+    firebaseUser: currentUser,
+  );
+}
+```
+
+<Note>
+The numeric ID system allows for easier API interoperability while still using Firestore's auto-generated document IDs internally.
+</Note>

@@ -1,0 +1,391 @@
+---
+title: User Roles & Permissions
+description: Role-based access control with User and Admin capabilities
+---
+
+LarpLand implements a simple but effective role-based access control (RBAC) system with two roles: **User** (rol=0) and **Admin** (rol=1). The role determines which features and UI components are accessible.
+
+## Overview
+
+The role system provides:
+
+- **Two roles**: User (0) and Admin (1)
+- **Role-based routing** after login
+- **Feature access control** based on role
+- **Separate UI interfaces** for users and admins
+- **Role persistence** in Firestore and session
+
+## Role Definition
+
+Roles are stored as integers in the user's Firestore profile:
+
+| Role | Value | Description |
+|------|-------|-------------|
+| **User** | `0` | Standard user with basic access |
+| **Admin** | `1` | Administrator with full access |
+
+### User Model
+
+The `User` model doesn't include the role field, but it's stored in Firestore:
+
+```dart lib/model/user.dart
+class User {
+  final int id;
+  final String name;
+  final String email;
+
+  const User({
+    required this.id,
+    required this.name,
+    required this.email,
+  });
+
+  factory User.fromJson(Map<String, dynamic> json) {
+    final rawId = json['id'];
+    final rawName = json['name'];
+    final rawEmail = json['email'];
+
+    final id = switch (rawId) {
+      int value => value,
+      num value => value.toInt(),
+      String value => int.tryParse(value),
+      _ => null,
+    };
+
+    if (id == null || rawName is! String || rawEmail is! String) {
+      throw const FormatException('Fallo al cargar el usuario');
+    }
+
+    return User(
+      id: id,
+      name: rawName,
+      email: rawEmail,
+    );
+  }
+}
+```
+
+<Note>
+The `rol` field is accessed through the Firestore profile data or `AuthSession.rol`, not through the `User` model.
+</Note>
+
+## Role Assignment
+
+### Default Role (User)
+
+New users are automatically assigned `rol: 0` (User) during registration:
+
+```dart lib/service/firebase_backend.dart
+final payload = <String, dynamic>{
+  'id': userId,
+  'name': name.isEmpty ? 'Usuario' : name,
+  'email': firebaseUser.email ?? '',
+  'rol': 0,  // Default to User role
+  'firebase_uid': firebaseUser.uid,
+  'created_at': FieldValue.serverTimestamp(),
+  'updated_at': FieldValue.serverTimestamp(),
+};
+await users.doc(firebaseUser.uid).set(payload, SetOptions(merge: true));
+```
+
+### Admin Role Assignment
+
+To make a user an admin, manually update their Firestore profile:
+
+```javascript
+// In Firebase Console or using Admin SDK
+db.collection('users').doc(firebaseUid).update({
+  rol: 1
+});
+```
+
+<Warning>
+There is no self-service admin registration. Admins must be created by updating Firestore directly or through an admin management interface.
+</Warning>
+
+## Session Role Storage
+
+The user's role is stored in the `AuthSession` singleton:
+
+```dart lib/service/auth_session.dart
+class AuthSession {
+  static String? token;
+  static String? firebaseUid;
+  static int? userId;
+  static int? rol;  // Role stored here
+
+  static void bind({
+    String? idToken,
+    String? uid,
+    int? sessionUserId,
+    int? sessionRol,
+  }) {
+    token = idToken;
+    firebaseUid = uid;
+    userId = sessionUserId;
+    rol = sessionRol;  // Set during login
+  }
+}
+```
+
+The role is set during login and persists throughout the user's session:
+
+```dart lib/service/login.dart
+final profile = await FirebaseBackend.ensureUserProfile(firebaseUser: user);
+final rol = _asInt(profile['rol']) ?? 0;
+
+AuthSession.bind(
+  idToken: idToken,
+  uid: user.uid,
+  sessionUserId: userId,
+  sessionRol: rol,  // Store role in session
+);
+```
+
+## Role-Based Routing
+
+After login, users are routed to different screens based on their role:
+
+```dart lib/view/login/login.dart
+final futureResult = await login(emailController.text, passwordController.text);
+
+if (futureResult.rol == 0) {
+  // User role - navigate to user home screen
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => HomeScreen(userId: futureResult.userId),
+    ),
+  );
+} else if (futureResult.rol == 1) {
+  // Admin role - navigate to admin home screen
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => AdminHome(userId: futureResult.userId),
+    ),
+  );
+} else {
+  throw const AppError(
+    code: 'auth.invalid_role',
+    message: 'Rol de usuario no valido.',
+  );
+}
+```
+
+### Routing Logic
+
+- **rol = 0**: Routes to `HomeScreen` (User UI)
+- **rol = 1**: Routes to `AdminHome` (Admin UI)
+- **Other values**: Throws authentication error
+
+## User Capabilities (rol = 0)
+
+Users with `rol: 0` can:
+
+### Product Features
+- Browse product catalog
+- View product details and reviews
+- Add products to cart
+- Submit product reviews
+- View their order history
+
+### Event Features
+- View event listings
+- Register for events
+- Cancel event registrations
+- View their registered events
+
+### Profile Features
+- View their profile
+- Update profile information
+- View order history
+- Sign out
+
+## Admin Capabilities (rol = 1)
+
+Admins with `rol: 1` have all User capabilities plus:
+
+### Product Management
+- Create new products
+- Update existing products
+- Delete products
+- Upload product images
+- Update stock levels
+
+```dart
+// Admin-only product operations
+await addProduct(name, description, price, stock, category, image);
+await updateProduct(id, name: newName, stock: newStock);
+await deleteProduct(id);
+```
+
+### Event Management
+- Create new events
+- Update existing events
+- Delete events
+- View all event registrations
+
+```dart
+// Admin-only event operations
+await addEvent(name, description, startDate, endDate);
+await updateEvent(id, name: newName, description: newDescription);
+await deleteEvent(id);
+```
+
+### Order Management
+- View all orders from all users
+- Update order status
+- View order details
+
+```dart
+// Admin-only order operations
+final allOrders = await fetchAllOrders();
+await updateOrderStatus(orderId: id, status: 'shipped');
+```
+
+### User Management
+- View all users
+- View user details
+- (Future: Update user roles)
+
+## Admin UI
+
+The admin interface (`AdminHome`) provides navigation to admin-only features:
+
+```dart lib/view/admin/adminhome.dart
+class AdminHome extends StatefulWidget {
+  const AdminHome({super.key, required this.userId});
+
+  final int userId;
+
+  @override
+  State<AdminHome> createState() => _AdminHomeState();
+}
+
+class _AdminHomeState extends State<AdminHome> {
+  int _currentIndex = 0;
+
+  final List<Widget> _screens = [
+    const OrdersAdminScreen(),
+    const ProductListAdminScreen(),
+    const EventListAdminScreen(),
+    const UsersListAdminScreen(),
+  ];
+
+  // Navigation bar with admin sections
+}
+```
+
+### Admin Sections
+
+1. **Orders** - View and manage all orders
+2. **Products** - CRUD operations for products
+3. **Events** - CRUD operations for events
+4. **Users** - View all users and their details
+
+## Checking User Role in Code
+
+To check the current user's role:
+
+```dart
+// Check session role
+if (AuthSession.rol == 1) {
+  // User is admin
+  // Show admin-only features
+}
+
+// Check role from Login result
+final loginResult = await login(email, password);
+if (loginResult.rol == 1) {
+  // Navigate to admin screen
+}
+```
+
+## Security Considerations
+
+<AccordionGroup>
+  <Accordion title="Client-Side Role Checks">
+    The current implementation performs role checks on the client side. For production apps, you should also enforce role-based security rules in Firebase Firestore to prevent unauthorized access.
+  </Accordion>
+  
+  <Accordion title="Firestore Security Rules">
+    Implement Firestore security rules to validate user roles server-side:
+    
+    ```javascript
+    rules_version = '2';
+    service cloud.firestore {
+      match /databases/{database}/documents {
+        // Only admins can write to products
+        match /products/{product} {
+          allow read: if true;
+          allow write: if request.auth != null && 
+            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.rol == 1;
+        }
+        
+        // Users can only read their own orders
+        match /orders/{order} {
+          allow read: if request.auth != null && 
+            (resource.data.user_id == request.auth.uid || 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.rol == 1);
+          allow write: if request.auth != null;
+        }
+      }
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Role Modification">
+    Never allow users to modify their own `rol` field. Role changes should only be performed by admins through a secure admin interface or directly in Firestore.
+  </Accordion>
+</AccordionGroup>
+
+## Firestore Schema
+
+### User Document with Role
+
+```json
+{
+  "id": 456,
+  "name": "John Doe",
+  "email": "john@example.com",
+  "rol": 0,
+  "firebase_uid": "abc123xyz",
+  "created_at": "2024-01-10T09:00:00Z",
+  "updated_at": "2024-01-15T14:30:00Z"
+}
+```
+
+### Admin User Document
+
+```json
+{
+  "id": 1,
+  "name": "Admin User",
+  "email": "admin@larpland.com",
+  "rol": 1,
+  "firebase_uid": "xyz789abc",
+  "created_at": "2024-01-01T00:00:00Z",
+  "updated_at": "2024-01-01T00:00:00Z"
+}
+```
+
+## Related Resources
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="lock" href="/features/authentication">
+    Role assignment during login
+  </Card>
+  
+  <Card title="Product Catalog" icon="store" href="/features/product-catalog">
+    Admin product management
+  </Card>
+  
+  <Card title="Events" icon="calendar-star" href="/features/events">
+    Admin event management
+  </Card>
+  
+  <Card title="Shopping Cart" icon="cart-shopping" href="/features/shopping-cart">
+    Admin order management
+  </Card>
+</CardGroup>

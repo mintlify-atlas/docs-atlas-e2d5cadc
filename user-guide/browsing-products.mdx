@@ -1,0 +1,148 @@
+---
+title: Browsing Products
+description: Discover and explore the LarpLand product catalog
+---
+
+The LarpLand marketplace offers a comprehensive product catalog where you can browse, search, and discover items for your roleplay adventures.
+
+## Accessing the Catalog
+
+The product catalog is accessible from the main navigation. When you launch LarpLand:
+
+1. The catalog appears as the first tab ("Mercado de aventureros") in the bottom navigation
+2. A shopping cart icon in the top-right corner shows your current cart item count
+3. The interface features a warm, parchment-style theme designed for immersive browsing
+
+## Searching for Products
+
+At the top of the catalog screen, you'll find a search bar that lets you quickly find products:
+
+<Steps>
+  <Step title="Enter search terms">
+    Type product names or categories in the search field at the top of the screen
+  </Step>
+  <Step title="View results">
+    Results update automatically as you type (with a 250ms debounce for smooth performance)
+  </Step>
+  <Step title="Clear search">
+    Tap the X icon in the search bar to clear your search and return to the full catalog
+  </Step>
+</Steps>
+
+The search matches against both product names and categories, making it easy to find what you need.
+
+## Advanced Filtering
+
+For more precise browsing, use the advanced filters:
+
+<Steps>
+  <Step title="Open filters">
+    Tap the "Filtros avanzados" button below the search bar
+  </Step>
+  <Step title="Select filter options">
+    Configure your filters:
+    - **Category**: Choose from all available product categories
+    - **Sort by**: Relevance, Price (ascending/descending), Rating, Stock, or Name (A-Z)
+    - **Price range**: Set minimum and maximum price limits
+    - **Stock availability**: Toggle to show only items in stock
+  </Step>
+  <Step title="Apply filters">
+    Filters apply automatically as you adjust them
+  </Step>
+  <Step title="Clear filters">
+    Tap "Limpiar" to reset all advanced filters to default settings
+  </Step>
+</Steps>
+
+## Browsing the Product Grid
+
+Products are displayed in a responsive grid layout:
+
+- **Desktop/large tablets**: 4 columns
+- **Medium tablets**: 3 columns
+- **Mobile**: 2 columns
+
+Each product card displays:
+
+- **Product image**: High-quality photo with contain fit
+- **Product name**: Displayed in bold, up to 2 lines
+- **Category**: Product category label
+- **Price**: Shown in euros (€)
+- **Rating**: Star rating out of 5
+- **Stock status**: Color-coded badge (green for 10+, orange for 3-9, red for low stock)
+- **Add to cart button**: Quick add functionality
+
+## Loading More Products
+
+The catalog initially displays 12 products. If more items match your filters:
+
+1. Scroll to the bottom of the grid
+2. You'll see a "Cargar mas" (Load more) tile showing remaining product count
+3. Tap it to load the next 12 products
+
+This pagination approach keeps the interface responsive while handling large catalogs.
+
+## Viewing Product Details
+
+To see more information about a product:
+
+<Steps>
+  <Step title="Tap a product card">
+    Tap anywhere on the product card to open the detail view
+  </Step>
+  <Step title="View full details">
+    The product detail page shows:
+    - Full-size product image
+    - Complete product name and description
+    - Price, stock, category, and rating information
+    - Customer reviews and ratings
+  </Step>
+  <Step title="Return to catalog">
+    Use the back button to return to the catalog
+  </Step>
+</Steps>
+
+The catalog automatically refreshes when you return from a product detail page, ensuring stock levels are always current.
+
+## Quick Add to Cart
+
+You can add products directly from the catalog grid:
+
+<Steps>
+  <Step title="Find your product">
+    Browse or search for the item you want
+  </Step>
+  <Step title="Tap 'Agregar'">
+    Click the "Agregar" button on the product card
+  </Step>
+  <Step title="Confirmation">
+    A snackbar notification confirms the item was added to your cart
+  </Step>
+</Steps>
+
+<Note>
+  Products with zero stock cannot be added to your cart. The add button will show an error if you attempt to add an out-of-stock item.
+</Note>
+
+## Refreshing the Catalog
+
+To refresh product information:
+
+- Pull down on the catalog screen (pull-to-refresh gesture)
+- The catalog will reload, updating all product information, stock levels, and ratings
+
+## Error Handling
+
+If the catalog fails to load:
+
+1. An error message appears with details about the issue
+2. A "Reintentar" (Retry) button lets you attempt to reload the catalog
+3. Check your internet connection if problems persist
+
+## Empty Results
+
+When no products match your search or filter criteria:
+
+- A message indicates "No hay productos con ese criterio"
+- Try adjusting your filters or clearing your search
+- Use the "Limpiar" button to reset all filters

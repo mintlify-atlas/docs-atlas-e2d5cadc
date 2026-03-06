@@ -1,0 +1,258 @@
+---
+title: Managing Events
+description: How to create and manage LARP events in the admin panel
+---
+
+The events management section allows you to create, edit, and track LARP events, including scheduling and participant registration.
+
+## Event Listing
+
+The events panel displays all events in a list view with detailed information:
+
+- Event name and description
+- Start and end dates/times
+- Event status (ongoing, upcoming, or past)
+- Edit and delete actions
+
+### Event Status Indicators
+
+Events are automatically categorized based on their dates:
+
+- **Proximos (Upcoming)**: Events that haven't started yet
+- **En curso (Ongoing)**: Events currently in progress
+- **Finalizados (Past)**: Events that have ended
+
+```dart
+// Status matching logic from event_list.dart:86-99
+return switch (_statusFilter) {
+  _EventStatusFilter.all => true,
+  _EventStatusFilter.upcoming => start.isAfter(now),
+  _EventStatusFilter.ongoing =>
+    !start.isAfter(now) && (end == null || !end.isBefore(now)),
+  _EventStatusFilter.past => end?.isBefore(now) ?? start.isBefore(now),
+};
+```
+
+### Filtering Events
+
+The event list includes two types of filters:
+
+<Steps>
+  <Step title="Status Filter">
+    Filter by event status:
+    - **Todos**: Show all events
+    - **En curso**: Only ongoing events
+    - **Proximos**: Upcoming events
+    - **Finalizados**: Past events
+  </Step>
+  
+  <Step title="Date Filter">
+    Filter by date range:
+    - **Todo**: All dates
+    - **Hoy**: Events starting today
+    - **Prox. 7 dias**: Events in the next 7 days
+    - **Prox. 30 dias**: Events in the next 30 days
+  </Step>
+</Steps>
+
+## Creating Events
+
+To create a new LARP event:
+
+<Steps>
+  <Step title="Open Event Form">
+    Click the floating action button (+ icon) in the bottom-right corner.
+  </Step>
+  
+  <Step title="Enter Event Details">
+    Fill in the required information:
+    - **Nombre del evento**: The event name
+    - **Descripcion**: A detailed description of the event (multiline)
+  </Step>
+  
+  <Step title="Set Event Schedule">
+    Define the event timeframe:
+    - **Fecha y hora de inicio**: Start date and time
+    - **Fecha y hora de fin**: End date and time
+    
+    Click the calendar icon or tap the field to open the date/time picker.
+  </Step>
+  
+  <Step title="Validate and Save">
+    Click "Guardar evento" to create the event. The system validates that the end time is after the start time.
+  </Step>
+</Steps>
+
+### Date and Time Selection
+
+```dart
+// Date/time picker implementation from event_register.dart:55-99
+Future<void> _pickDateTime({required bool isStart}) async {
+  final now = DateTime.now();
+  final initial = isStart
+      ? (_fechaInicio ?? now)
+      : (_fechaFin ?? _fechaInicio ?? now.add(const Duration(hours: 1)));
+
+  final pickedDate = await showDatePicker(
+    context: context,
+    initialDate: initial,
+    firstDate: DateTime(now.year - 1),
+    lastDate: DateTime(now.year + 3),
+  );
+  
+  final pickedTime = await showTimePicker(
+    context: context,
+    initialTime: TimeOfDay.fromDateTime(initial),
+  );
+  
+  // Combine date and time...
+}
+```
+
+## Event Details and Registration Tracking
+
+Each event card displays:
+
+- Event name and description
+- Formatted start and end dates
+- Event status badge
+- Action buttons for editing and deleting
+
+### Event Card Component
+
+Events are displayed using the `EventCard` component:
+
+```dart
+// From event_list.dart:376-401
+EventCard(
+  event: event,
+  margin: const EdgeInsets.only(bottom: 10),
+  trailingAction: Wrap(
+    spacing: 8,
+    children: [
+      OutlinedButton.icon(
+        onPressed: () => _openEventForm(event: event),
+        icon: const Icon(Icons.edit_outlined, size: 18),
+        label: const Text('Editar'),
+      ),
+      OutlinedButton.icon(
+        onPressed: () => _deleteEvent(event),
+        icon: const Icon(
+          Icons.delete_outline,
+          size: 18,
+          color: Colors.red,
+        ),
+        label: const Text(
+          'Borrar',
+          style: TextStyle(color: Colors.red),
+        ),
+      ),
+    ],
+  ),
+)
+```
+
+## Editing Events
+
+To modify an existing event:
+
+<Steps>
+  <Step title="Open Event Editor">
+    Click the "Editar" button on the event card.
+  </Step>
+  
+  <Step title="Update Event Information">
+    Modify any of the event fields:
+    - Event name
+    - Description
+    - Start date/time
+    - End date/time
+  </Step>
+  
+  <Step title="Save Changes">
+    Click "Actualizar evento" to save your changes. The event list will refresh automatically.
+  </Step>
+</Steps>
+
+### Update Implementation
+
+```dart
+// From event_register.dart:144-151
+await updateEvent(
+  widget.event!.id,
+  name: nameController.text.trim(),
+  description: descriptionController.text.trim(),
+  fechaInicio: _toApiDateTime(_fechaInicio!),
+  fechaFin: _toApiDateTime(_fechaFin!),
+);
+```
+
+## Deleting Events
+
+To remove an event:
+
+<Steps>
+  <Step title="Click Delete">
+    Click the "Borrar" button (shown in red) on the event card.
+  </Step>
+  
+  <Step title="Confirm Deletion">
+    Confirm the action in the dialog. The event will be permanently removed.
+  </Step>
+</Steps>
+
+<Warning>
+Deleting an event is permanent and cannot be undone. All event information and associated data will be lost.
+</Warning>
+
+## Event List Features
+
+### Search Functionality
+
+Search events by:
+- Event name
+- Description text
+- Event ID
+
+The search is case-insensitive and updates results in real-time.
+
+### Pagination
+
+The event list loads 10 events at a time:
+
+```dart
+// From event_list.dart:19
+static const int _pageSize = 10;
+```
+
+Click "Cargar mas" to load additional events when available.
+
+### Refresh Options
+
+- Click the refresh button in the top-right corner
+- Pull down on the list (on touch devices)
+- List automatically refreshes after creating, editing, or deleting events
+
+## Event Date Formatting
+
+Dates are formatted for the API in the following format:
+
+```dart
+// From event_register.dart:111-118
+String _toApiDateTime(DateTime value) {
+  final y = value.year.toString().padLeft(4, '0');
+  final m = value.month.toString().padLeft(2, '0');
+  final d = value.day.toString().padLeft(2, '0');
+  final h = value.hour.toString().padLeft(2, '0');
+  final min = value.minute.toString().padLeft(2, '0');
+  return '$y-$m-$d $h:$min:00';
+}
+```
+
+<Tip>
+Use the date filter to quickly find upcoming events and ensure they're properly scheduled. The "Prox. 7 dias" filter is particularly useful for planning.
+</Tip>
+
+<Note>
+The system automatically validates that end dates are after start dates. If you try to set an invalid date range, you'll receive an error message.
+</Note>

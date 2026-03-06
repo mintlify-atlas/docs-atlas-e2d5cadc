@@ -1,0 +1,223 @@
+---
+title: Architecture Overview
+description: Understand the overall application architecture of LarpLand
+---
+
+LarpLand is built using a modern Flutter + Firebase architecture that provides a scalable, real-time mobile and web application.
+
+## Architecture Layers
+
+The application follows a clean architecture pattern with clear separation of concerns:
+
+```
+┌─────────────────────────────────────────┐
+│          UI Layer (View)                │
+│   Flutter Widgets & Screens             │
+└────────────────┬────────────────────────┘
+                 │
+┌────────────────▼────────────────────────┐
+│      State Management Layer             │
+│   Provider (CartProvider, AuthSession)  │
+└────────────────┬────────────────────────┘
+                 │
+┌────────────────▼────────────────────────┐
+│        Service Layer                    │
+│   Business Logic & API Calls            │
+└────────────────┬────────────────────────┘
+                 │
+┌────────────────▼────────────────────────┐
+│       Firebase Backend                  │
+│   Firestore, Auth, Storage              │
+└─────────────────────────────────────────┘
+```
+
+## Flutter + Firebase Stack
+
+The app leverages Firebase services for backend functionality:
+
+- **Firebase Authentication**: User authentication and session management
+- **Cloud Firestore**: NoSQL database for products, events, orders, and reviews
+- **Firebase Storage**: Image and media file storage
+- **Firebase Core**: Platform initialization and configuration
+
+## Data Flow
+
+Data flows through the application in a unidirectional pattern:
+
+1. **User Interaction**: User interacts with UI widgets
+2. **State Update**: Provider or local state is updated
+3. **Service Call**: Service layer methods are invoked
+4. **Firebase Request**: Service communicates with Firebase backend
+5. **Data Normalization**: Firebase data is transformed to models
+6. **UI Update**: Widgets rebuild with new data
+
+## Authentication Flow
+
+Authentication is managed through the `AuthSession` service:
+
+```dart
+// From lib/service/auth_session.dart
+class AuthSession {
+  static String? token;
+  static String? firebaseUid;
+  static int? userId;
+  static int? rol;
+
+  static Future<void> syncFromFirebase() async {
+    final user = fb_auth.FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      clearLocal();
+      return;
+    }
+
+    final profile = await FirebaseBackend.ensureUserProfile(firebaseUser: user);
+    bind(
+      idToken: await user.getIdToken(),
+      uid: user.uid,
+      sessionUserId: profile['id'] as int?,
+      sessionRol: profile['rol'] as int?,
+    );
+  }
+}
+```
+
+### Authentication Steps
+
+1. User logs in via Firebase Auth
+2. `AuthSession.syncFromFirebase()` is called
+3. User profile is fetched/created in Firestore
+4. Session data (token, userId, role) is stored in memory
+5. App navigates to appropriate screen based on role
+
+## Firebase Collections Structure
+
+The Firestore database is organized into the following collections:
+
+```dart
+// From lib/service/firebase_backend.dart
+class FirebaseBackend {
+  static CollectionReference<Map<String, dynamic>> get users =>
+      firestore.collection('users');
+
+  static CollectionReference<Map<String, dynamic>> get products =>
+      firestore.collection('products');
+
+  static CollectionReference<Map<String, dynamic>> get events =>
+      firestore.collection('events');
+
+  static CollectionReference<Map<String, dynamic>> get reviews =>
+      firestore.collection('reviews');
+}
+```
+
+### Collection Schemas
+
+#### Users Collection
+- `id` (int): Numeric user ID
+- `name` (string): User display name
+- `email` (string): User email address
+- `rol` (int): User role (0=customer, 1=admin)
+- `firebase_uid` (string): Firebase Auth UID
+- `created_at` (timestamp): Account creation date
+- `updated_at` (timestamp): Last update date
+
+#### Products Collection
+- `id` (int): Numeric product ID
+- `nombre` (string): Product name
+- `descripcion` (string): Product description
+- `precio` (string): Product price
+- `cantidad` (int): Stock quantity
+- `imagen` (string): Image URL
+- `categoria` (string): Product category
+- `valoracion_total` (string): Average rating
+
+#### Events Collection
+- `id` (int): Numeric event ID
+- Event details (name, description, date, etc.)
+- Participant information
+
+#### Reviews Collection
+- `id` (int): Numeric review ID
+- User feedback and ratings
+- Product/event references
+
+## Firebase Backend Service
+
+The `FirebaseBackend` service provides centralized access to Firebase:
+
+```dart
+// From lib/service/firebase_backend.dart
+class FirebaseBackend {
+  static FirebaseFirestore get firestore => FirebaseFirestore.instance;
+  static FirebaseStorage get storage => FirebaseStorage.instance;
+  static fb_auth.FirebaseAuth get auth => fb_auth.FirebaseAuth.instance;
+
+  static void ensureInitialized() {
+    if (Firebase.apps.isEmpty) {
+      throw const AppError(
+        code: 'firebase.not_initialized',
+        message: 'Firebase no esta inicializado.'
+      );
+    }
+  }
+
+  static Future<int> nextNumericId(String counterKey) async {
+    ensureInitialized();
+    return firestore.runTransaction((transaction) async {
+      final snapshot = await transaction.get(_counterDoc);
+      final data = snapshot.data() ?? const <String, dynamic>{};
+      final current = _asInt(data[counterKey]) ?? 0;
+      final next = current + 1;
+      transaction.set(_counterDoc, <String, dynamic>{
+        counterKey: next,
+        'updated_at': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      return next;
+    });
+  }
+}
+```
+
+### Key Features
+
+- **Numeric ID Generation**: Auto-incrementing IDs for user-friendly references
+- **Data Normalization**: Converts Firestore timestamps to ISO strings
+- **Error Handling**: Centralized error messages for common Firebase errors
+- **User Profile Management**: Ensures user profiles exist in Firestore
+
+## Entry Point
+
+The application initializes Firebase in `main.dart`:
+
+```dart
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  var firebaseReady = false;
+  if (DefaultFirebaseOptions.isConfigured) {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    await AuthSession.syncFromFirebase();
+    firebaseReady = true;
+  }
+
+  runApp(MyApp(firebaseReady: firebaseReady));
+}
+```
+
+1. Initialize Flutter framework
+2. Configure and initialize Firebase
+3. Sync authentication session
+4. Launch application
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Project Structure" icon="folder-tree" href="/development/project-structure">
+    Explore the codebase organization
+  </Card>
+  <Card title="State Management" icon="database" href="/development/state-management">
+    Learn about Provider and state patterns
+  </Card>
+</CardGroup>
