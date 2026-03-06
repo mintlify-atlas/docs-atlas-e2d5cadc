@@ -1,0 +1,106 @@
+{
+  "projectType": "saas",
+  "projectName": "LarpLand",
+  "projectDescription": "Flutter application for managing LARP store and events with user and admin roles.",
+  "theme": "almond",
+  "primaryColor": "#2C4432",
+  "lightColor": "#C9953E",
+  "darkColor": "#8C3C2F",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "firebase-setup",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Features",
+            "pages": [
+              "features/overview",
+              "features/authentication",
+              "features/product-catalog",
+              "features/shopping-cart",
+              "features/events",
+              "features/user-roles"
+            ]
+          },
+          {
+            "group": "User Guide",
+            "pages": [
+              "user-guide/browsing-products",
+              "user-guide/shopping",
+              "user-guide/events",
+              "user-guide/reviews"
+            ]
+          },
+          {
+            "group": "Admin Guide",
+            "pages": [
+              "admin-guide/overview",
+              "admin-guide/managing-products",
+              "admin-guide/managing-events",
+              "admin-guide/managing-users",
+              "admin-guide/orders"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Development",
+        "groups": [
+          {
+            "group": "Architecture",
+            "pages": [
+              "development/architecture",
+              "development/project-structure",
+              "development/state-management",
+              "development/theming"
+            ]
+          },
+          {
+            "group": "API Reference",
+            "pages": [
+              "api/models",
+              "api/services",
+              "api/firebase-backend",
+              "api/components"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Firebase authentication with email/password",
+    "Product catalog with search and filtering",
+    "Shopping cart with checkout flow",
+    "LARP event management and registration",
+    "User reviews and ratings",
+    "Admin panel for managing products, events, and users",
+    "Image upload via Firebase Storage",
+    "Local notifications for event reminders",
+    "Multi-platform support (iOS, Android, Web, Desktop)"
+  ],
+  "publicApiSurface": [
+    "FirebaseBackend.auth - Firebase authentication",
+    "FirebaseBackend.firestore - Cloud Firestore instance",
+    "FirebaseBackend.storage - Firebase Storage instance",
+    "FirebaseBackend.users - Users collection reference",
+    "FirebaseBackend.products - Products collection reference",
+    "FirebaseBackend.events - Events collection reference",
+    "FirebaseBackend.reviews - Reviews collection reference",
+    "CartProvider - Shopping cart state management",
+    "AuthSession - User session management",
+    "ProductService - Product CRUD operations",
+    "RoleplayEventService - Event CRUD operations",
+    "OrderService - Order management",
+    "UserReviewService - Review management"
+  ]
+}
